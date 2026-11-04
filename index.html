@@ -572,7 +572,7 @@ async function ensureMap(id){if(mapCache[id]||!isGM)return;const d=await store.g
 /* ---------- Sichern und Laden ---------- */
 async function exportAll(){
   const maps={};for(const s of Object.values(scenes)){if(s.map&&!maps[s.map]){maps[s.map]=mapCache[s.map]||await store.get("map:"+s.map)||null}}
-  const blob=new Blob([JSON.stringify({app:"spieltisch",v:1,scenes,aktiv,maps,imgs:imgCache})],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({app:"spieltisch",v:2,scenes,aktiv,maps,imgs:imgCache,code:tableCode(),pw:ls.get("tisch-pw","")})],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   const d=new Date();a.download="Spieltisch-Sicherung-"+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+".json";
   document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
@@ -588,8 +588,12 @@ async function importAll(file){
     for(const [id,d] of Object.entries(j.maps||{})){if(typeof d==="string"&&d.startsWith("data:image/")){await store.set("map:"+id,d);mapCache[id]=d}}
     scenes=j.scenes;aktiv=j.aktiv&&scenes[j.aktiv]?j.aktiv:(Object.keys(scenes)[0]||null);cur=aktiv;ls.set("tisch-cur",cur);
     for(const c of conns.values())c.maps.clear();
+    await store.set("scenes",scenes);await store.set("aktiv",aktiv);
+    if(typeof j.pw==="string"){ls.set("tisch-pw",j.pw);$("#gmPw").value=j.pw}
+    if(typeof j.code==="string"&&/^[a-z0-9]{6,24}$/.test(j.code)&&j.code!==tableCode()){
+      ls.set("tisch-code",j.code);st.textContent="Geladen. Der Spieler-Link wird übernommen, die Seite startet neu …";setTimeout(()=>location.reload(),1500);return}
     persist();broadcastSoon();fitted=null;sel=null;render();fillMapForm();
-    st.textContent="Geladen: "+Object.keys(scenes).length+" Szenen.";
+    st.textContent="Geladen: "+Object.keys(scenes).length+" Szenen"+(j.code?", Spieler-Link und Passwort übernommen.":".");
   }catch(e){st.textContent="Diese Datei ist keine Spieltisch-Sicherung."}
 }
 
