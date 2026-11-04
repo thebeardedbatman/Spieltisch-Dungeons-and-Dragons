@@ -333,6 +333,9 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
             <label id="growsL">Zeilen <input type="number" id="grows" min="4" max="120"></label>
             <label><input type="checkbox" id="gshow"> Linien zeigen</label>
           </div>
+          <div class="row">
+            <label>Linien <select id="gstyle"><option value="kontrast">Gut sichtbar (hell mit Schatten)</option><option value="kraeftig">Sehr kräftig</option><option value="dunkel">Dunkel</option><option value="fein">Fein und dezent</option></select></label>
+          </div>
           <div class="row" id="goffs">
             <label>Versatz links <input type="number" id="gox"></label>
             <label>oben <input type="number" id="goy"></label>
@@ -883,10 +886,16 @@ function render(){
 function drawGrid(sc,g){
   const cv=$("#grid");cv.width=g.W;cv.height=g.H;const c=cv.getContext("2d");c.clearRect(0,0,g.W,g.H);
   if(!(sc.grid??true))return;
-  c.strokeStyle=g.hasMap?"rgba(0,0,0,.35)":"rgba(60,50,30,.35)";c.lineWidth=Math.max(1,g.cell/50);c.beginPath();
+  const lw=Math.max(1,g.cell/45);
+  const ST={kontrast:[["rgba(0,0,0,.55)",lw*2.6],["rgba(255,244,220,.6)",lw]],
+    kraeftig:[["rgba(0,0,0,.75)",lw*3.4],["rgba(255,248,230,.9)",lw*1.5]],
+    dunkel:[["rgba(0,0,0,.7)",lw*1.4]],
+    fein:[[g.hasMap?"rgba(0,0,0,.35)":"rgba(60,50,30,.35)",lw*.9]]};
+  const passes=ST[sc.gstyle]||ST.kontrast;
+  c.beginPath();
   for(let i=0;i<=g.cols;i++){const x=g.ox+i*g.cell;if(x<0||x>g.W)continue;c.moveTo(x,0);c.lineTo(x,g.H)}
   for(let j=0;j<=g.rows;j++){const y=g.oy+j*g.cell;if(y<0||y>g.H)continue;c.moveTo(0,y);c.lineTo(g.W,y)}
-  c.stroke();
+  passes.forEach(([col,w])=>{c.strokeStyle=col;c.lineWidth=w;c.stroke()});
 }
 function drawFog(sc,g){
   const cv=$("#fog");cv.width=g.W;cv.height=g.H;const c=cv.getContext("2d");c.clearRect(0,0,g.W,g.H);
@@ -1024,17 +1033,17 @@ $("#clearEnemies").onclick=()=>{const sc=scenes[cur];if(!sc)return;Object.keys(s
 function fillMapForm(){
   const sc=scenes[cur];if(!sc)return;const g=geo(sc);
   $("#gcols").value=sc.cols||24;$("#grows").value=sc.rows||16;$("#growsL").hidden=g.hasMap;$("#goffs").hidden=!g.hasMap;
-  $("#gox").value=sc.ox||0;$("#goy").value=sc.oy||0;$("#gshow").checked=sc.grid??true;$("#fogOn").checked=!!sc.fogOn;
+  $("#gox").value=sc.ox||0;$("#goy").value=sc.oy||0;$("#gshow").checked=sc.grid??true;$("#gstyle").value=sc.gstyle||"kontrast";$("#fogOn").checked=!!sc.fogOn;
 }
 function formChanged(){
   const sc=scenes[cur];if(!sc)return;
   const oldG=geo(sc);
   sc.cols=clamp(+$("#gcols").value||24,2,200);sc.rows=clamp(+$("#grows").value||16,2,200);
-  sc.ox=+$("#gox").value||0;sc.oy=+$("#goy").value||0;sc.grid=$("#gshow").checked;
+  sc.ox=+$("#gox").value||0;sc.oy=+$("#goy").value||0;sc.grid=$("#gshow").checked;sc.gstyle=$("#gstyle").value;
   const g=geo(sc);if(g.cols!==oldG.cols||g.rows!==oldG.rows)sc.fog="";
   render();saveSoon(cur,300);
 }
-["#gcols","#grows","#gox","#goy","#gshow"].forEach(s=>$(s).addEventListener("input",formChanged));
+["#gcols","#grows","#gox","#goy","#gshow","#gstyle"].forEach(s=>$(s).addEventListener("input",formChanged));$("#gstyle").addEventListener("change",formChanged);
 $("#fogOn").onchange=()=>{const sc=scenes[cur];if(!sc)return;sc.fogOn=$("#fogOn").checked;if(sc.fogOn&&!sc.fog){const g=geo(sc);sc.fog="1".repeat(g.cols*g.rows)}save(cur);render()};
 $("#fogAll").onclick=()=>{const sc=scenes[cur];if(!sc)return;const g=geo(sc);sc.fog="1".repeat(g.cols*g.rows);sc.fogOn=true;$("#fogOn").checked=true;save(cur);render()};
 $("#fogNone").onclick=()=>{const sc=scenes[cur];if(!sc)return;const g=geo(sc);sc.fog="0".repeat(g.cols*g.rows);save(cur);render()};
