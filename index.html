@@ -730,7 +730,7 @@ function onPlayerData(id,d){
     c.ok=true;c.me=HMAP[d.me]?d.me:"";sendTo(id,{type:"welcome"});sendTo(id,{type:"music",m:mState});if(Object.keys(imgCache).length)sendTo(id,{type:"imgs",imgs:imgCache});sendState(id);sendTo(id,{type:"log",log});updateRoster();return;
   }
   if(d.type==="me"){c.me=HMAP[d.me]?d.me:"";updateRoster()}
-  else if(d.type==="mv"){applyMove(d)}
+  else if(d.type==="mv"){if(c.me&&(d.id===c.me||(c.me==="dragooner"&&d.id==="luna")))applyMove(d)}
   else if(d.type==="roll"){addLog({who:String(d.who||"Gast").slice(0,30),txt:String(d.txt||"").slice(0,140),tot:Number(d.tot)||0,t:Date.now()})}
   else if(d.type==="ping"){const p={type:"ping",x:+d.x||0,y:+d.y||0,who:String(d.who||"").slice(0,30),sid:d.sid};sendAll(p);if(viewSid()===p.sid)showPing(p.x,p.y,p.who)}
 }
