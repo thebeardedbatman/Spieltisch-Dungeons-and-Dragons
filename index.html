@@ -86,7 +86,20 @@ canvas{position:absolute;left:0;top:0;pointer-events:none}
 .pwbox input{width:100%;padding:8px 10px;font-size:1rem}
 .pwbox .err{color:var(--danger);font-size:.9rem;min-height:1.2em}
 .empty{position:absolute;inset:0;display:grid;place-items:center;color:#cfd6cf;text-align:center;padding:24px;z-index:9;pointer-events:none}
-aside{border-left:1px solid var(--line);background:var(--surface);display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}
+aside{border-left:1px solid var(--line);background:var(--surface);display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0}
+.music{border-top:1px solid var(--line);padding:10px 12px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:10px;align-items:start;background:var(--surface)}
+.music.file{grid-template-columns:1fr}
+.music .yt{width:200px;height:200px;background:#000;border-radius:var(--r);overflow:hidden}
+.music .yt iframe{width:200px;height:200px;display:block;position:static}
+.music .ctl{display:grid;gap:8px;min-width:0}
+.music .now{font-weight:700;overflow-wrap:anywhere}
+.music input[type=range]{width:100%;accent-color:var(--accent)}
+.tracks{display:grid;gap:4px}
+.track{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;background:var(--bg)}
+.track.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.track .t{flex:1;min-width:0;overflow-wrap:anywhere}
+textarea.bulk{width:100%;min-height:90px;padding:6px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);font:inherit;font-size:.88rem}
+@media (max-width:820px){.music{grid-template-columns:1fr}}
 .tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
 .tab{background:none;border:0;padding:9px 12px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
@@ -127,6 +140,18 @@ input[type=color]{width:40px;height:30px;padding:0;border:1px solid var(--line);
 .banner{background:var(--danger);color:#fff;padding:6px 16px;font-size:.9rem}
 .banner.info{background:var(--moss)}
 ul.help{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.rules details{border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.rules summary{cursor:pointer;padding:9px 12px;font-weight:700;list-style:none}
+.rules summary::-webkit-details-marker{display:none}
+.rules summary::before{content:"▸ ";color:var(--accent)}
+.rules details[open] summary::before{content:"▾ "}
+.rules .in{padding:0 12px 12px;display:grid;gap:8px;font-size:.92rem}
+.rules table{border-collapse:collapse;width:100%;font-size:.88rem}
+.rules td,.rules th{text-align:left;vertical-align:top;padding:5px 6px;border-bottom:1px solid var(--line)}
+.rules th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.rules td:first-child{font-weight:700;width:38%}
+.rules .box{border-left:3px solid var(--accent);padding:6px 10px;background:var(--surface-2);border-radius:4px}
+.rules .formula{text-align:center;font-weight:700;font-size:1.05rem;padding:8px;background:var(--surface-2);border-radius:var(--r)}
 
 /* ---------- Themen der Abenteuer ---------- */
 .atmo{position:absolute;inset:0;pointer-events:none;z-index:0}
@@ -215,8 +240,10 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
       <div class="tabs" role="tablist" id="tabs">
         <button class="tab" role="tab" data-t="wuerfel" aria-selected="true">Würfel</button>
         <button class="tab gm" role="tab" data-t="figuren" aria-selected="false" hidden>Figuren</button>
-        <button class="tab gm" role="tab" data-t="karte" aria-selected="false" hidden>Karte &amp; Nebel</button>
+        <button class="tab gm" role="tab" data-t="karte" aria-selected="false" hidden>Karte</button>
         <button class="tab gm" role="tab" data-t="szenen" aria-selected="false" hidden>Szenen</button>
+        <button class="tab gm" role="tab" data-t="musik" aria-selected="false" hidden>Musik</button>
+        <button class="tab" role="tab" data-t="regeln" aria-selected="false">Regeln</button>
         <button class="tab" role="tab" data-t="hilfe" aria-selected="false">Hilfe</button>
       </div>
 
@@ -312,6 +339,35 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
         </div>
       </div>
 
+      <div class="pane" id="p-musik" hidden>
+        <div class="sec">
+          <h3>Musik für alle</h3>
+          <p class="note">Klick auf ▶, dann läuft der Titel bei dir und bei allen Spielern im Browser. Jeder stellt seine Lautstärke unten in der Seitenleiste selbst ein. Möglich sind YouTube-Links (auch Playlists) und eigene MP3-Dateien.</p>
+          <div class="row"><button class="btn" id="mStop">■ Musik aus</button><label><input type="checkbox" id="mLoop" checked> Wiederholen</label></div>
+          <div class="tracks" id="trackList"></div>
+        </div>
+        <div class="sec">
+          <h3>Titel hinzufügen</h3>
+          <input type="text" id="tName" placeholder="Name, z. B. Taverne">
+          <input type="text" id="tUrl" placeholder="YouTube-Link (Video oder Playlist)">
+          <div class="row"><button class="btn pri" id="tAdd">Hinzufügen</button></div>
+          <p class="note" id="tMsg"></p>
+        </div>
+        <div class="sec">
+          <h3>Eigene Musikdateien (ohne Werbung)</h3>
+          <p class="note">MP3-Dateien von deinem Rechner. Sie bleiben in diesem Browser gespeichert. Beim Abspielen schickt dein Browser die Datei direkt an die Spieler, YouTube ist dafür nicht nötig. Eine 10-Minuten-MP3 hat etwa 10 MB.</p>
+          <div class="row"><label class="btn pri" style="cursor:pointer">Dateien hinzufügen<input type="file" id="fAdd" accept="audio/*,.mp3,.ogg,.m4a" multiple hidden></label><button class="btn" id="fPush">Vorab an Spieler senden</button></div>
+          <p class="note">Tipp: Klick „Vorab an Spieler senden“, sobald alle da sind. Dann startet jeder Wechsel später sofort.</p>
+          <p class="note" id="fMsg"></p>
+        </div>
+        <div class="sec">
+          <h3>Viele auf einmal</h3>
+          <p class="note">Eine Zeile pro Titel: erst der Name, dann der Link. Zum Beispiel: <i>Taverne https://www.youtube.com/watch?v=…</i></p>
+          <textarea class="bulk" id="tBulk"></textarea>
+          <div class="row"><button class="btn" id="tBulkAdd">Alle hinzufügen</button></div>
+        </div>
+      </div>
+
       <div class="pane" id="p-szenen" hidden>
         <div class="sec">
           <h3>Szenen</h3>
@@ -343,11 +399,113 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
         </div>
         <div class="sec">
           <h3>Sichern</h3>
-          <p class="note">Szenen, Karten und Nebel liegen nur in diesem Browser. Mit „Sichern“ lädst du alles als Datei herunter, mit „Laden“ holst du es zurück, auch auf einem anderen Rechner. Mit „Laden“ liest du auch einmalig die Datei Heldenbilder.json ein. Die Bilder liegen dann nur in deinem Browser und gehen erst nach dem Passwort an die Spieler.</p>
+          <p class="note">Szenen, Karten und Nebel liegen nur in diesem Browser. Mit „Sichern“ lädst du alles als Datei herunter, mit „Laden“ holst du es zurück, auch auf einem anderen Rechner. Eigene Musikdateien sind wegen ihrer Größe nicht in der Sicherung, die fügst du auf einem anderen Rechner einfach neu hinzu. Mit „Laden“ liest du auch einmalig die Datei Heldenbilder.json ein. Die Bilder liegen dann nur in deinem Browser und gehen erst nach dem Passwort an die Spieler.</p>
           <div class="row"><button class="btn" id="exportBtn">Sichern</button><label class="btn" style="cursor:pointer">Laden<input type="file" id="importFile" accept=".json,application/json" hidden></label></div>
           <p class="note" id="imgStatus"></p>
           <p class="note" id="ioStatus"></p>
         </div>
+      </div>
+
+      <div class="pane rules" id="p-regeln" hidden>
+        <div class="sec">
+          <h3>Regeln zum Nachschlagen</h3>
+          <p class="note">Das Wichtigste aus dem Spielerhandbuch. Antippen klappt einen Abschnitt auf. Im Zweifel entscheidet der Spielleiter.</p>
+        </div>
+        <div class="box" id="hausregel" hidden><b>Hausregel „Beim Barte!“:</b> Einmal an diesem Abend darfst du „Beim Barte!“ rufen und einen W20-Wurf deines Helden neu würfeln. Das zweite Ergebnis zählt. Wer geschoren wird, verliert diesen Schwur, bis der Seelenzopf zerstört ist.</div>
+        <details open><summary>Der Grundwurf</summary><div class="in">
+          <div class="formula">W20 + Bonus ≥ Zielzahl → geschafft</div>
+          <p>Die Zielzahl heißt bei Proben und Rettungswürfen <b>SG</b> (Schwierigkeitsgrad), bei Angriffen <b>RK</b> (Rüstungsklasse) des Gegners. Leicht ist 10, mittel 15, schwer 20.</p>
+          <p><b>Vorteil:</b> zwei W20, der höhere zählt. <b>Nachteil:</b> zwei W20, der niedrigere zählt. Beides zugleich hebt sich auf. Im Reiter „Würfel“ stellst du das oben ein.</p>
+          <p><b>Natürliche 20</b> beim Angriff: kritischer Treffer, alle Schadenswürfel doppelt. <b>Natürliche 1</b> beim Angriff verfehlt immer.</p>
+          <p><b>Welcher Bonus?</b> Steht auf deinem Bogen im Spielerhandbuch: Fertigkeiten, Rettungswürfe, Initiative und bei Angriffen die Spalte „Treffer“. Schaden würfelst du mit den Würfeln aus der Spalte „Schaden“, zum Beispiel 1W8+3: Anzahl 1, W8 klicken, Bonus 3.</p>
+        </div></details>
+        <details><summary>Dein Zug im Kampf</summary><div class="in">
+          <table><tbody>
+            <tr><td>Bewegung</td><td>Bis zu deiner Bewegungsrate, meist 9 m = 6 Felder. Darfst du aufteilen, zum Beispiel vor und nach dem Angriff.</td></tr>
+            <tr><td>Aktion</td><td>Eine Sache: angreifen, zaubern, spurten, helfen, verstecken, Gegenstand benutzen.</td></tr>
+            <tr><td>Bonusaktion</td><td>Nur wenn eine Fähigkeit oder ein Zauber es erlaubt.</td></tr>
+            <tr><td>Reaktion</td><td>Einmal pro Runde, auch im Zug der anderen, zum Beispiel ein Gelegenheitsangriff.</td></tr>
+            <tr><td>Nebenbei</td><td>Eine Kleinigkeit: Tür öffnen, Waffe ziehen, etwas aufheben.</td></tr>
+          </tbody></table>
+          <p><b>Initiative:</b> Zu Beginn würfeln alle W20 + Initiative-Bonus. Der höchste Wurf ist zuerst dran. Eine Runde dauert etwa sechs Sekunden.</p>
+        </div></details>
+        <details><summary>Aktionen im Überblick</summary><div class="in">
+          <table><tbody>
+            <tr><td>Angriff</td><td>W20 + Treffer-Bonus gegen die RK des Ziels. Getroffen? Dann Schaden würfeln.</td></tr>
+            <tr><td>Spurt</td><td>Doppelte Bewegung in diesem Zug.</td></tr>
+            <tr><td>Rückzug</td><td>Du kannst weggehen, ohne Gelegenheitsangriffe auszulösen.</td></tr>
+            <tr><td>Ausweichen</td><td>Angriffe gegen dich haben Nachteil bis zu deinem nächsten Zug.</td></tr>
+            <tr><td>Helfen</td><td>Ein Verbündeter hat Vorteil auf seinen nächsten Wurf.</td></tr>
+            <tr><td>Verstecken</td><td>Heimlichkeit, mindestens 15, niemand darf dich direkt sehen. Dein nächster Angriff hat Vorteil.</td></tr>
+            <tr><td>Gegenstand</td><td>Trank trinken, Fackel werfen, Tür verbarrikadieren.</td></tr>
+          </tbody></table>
+          <div class="box"><b>Kreativ sein lohnt sich:</b> Kronleuchter, Kerzen, Mehlsäcke, Tische. Frag einfach den Spielleiter, was möglich ist.</div>
+        </div></details>
+        <details><summary>Häufige Fragen im Kampf</summary><div class="in">
+          <table><tbody>
+            <tr><td>Gegner steht direkt neben mir, ich will schießen.</td><td>Nachteil auf den Fernkampfangriff. Erst wegbewegen (mit Rückzug) oder in den Nahkampf wechseln.</td></tr>
+            <tr><td>Gegner läuft von mir weg.</td><td>Gelegenheitsangriff: Du darfst ihn einmal mit deiner Reaktion angreifen. Das gilt umgekehrt auch für dich.</td></tr>
+            <tr><td>Durch ein Feld laufen, in dem jemand steht?</td><td>Durch Verbündete ja, durch Gegner nein. Trümmer, Gestrüpp oder Wasser kosten doppelte Bewegung.</td></tr>
+            <tr><td>Bringt Deckung etwas?</td><td>Hinter Tisch oder halber Mauer +2 RK, hinter einer Schießscharte +5 RK.</td></tr>
+            <tr><td>Kritischer Treffer?</td><td>Alle Schadenswürfel doppelt würfeln, den festen Bonus nur einmal. Aus 1W8+3 wird 2W8+3.</td></tr>
+            <tr><td>Mein Zauber verlangt einen Rettungswurf.</td><td>Sag dem Spielleiter deinen Zauber-SG und das Attribut. Er würfelt für den Gegner.</td></tr>
+            <tr><td>Muss ich fürs Heilen würfeln?</td><td>Nein, Heilen gelingt immer. Gewürfelt wird nur die Menge. Heiltrank: Bonusaktion, 2W4+2.</td></tr>
+            <tr><td>Konzentration?</td><td>Nimmst du Schaden, während ein Konzentrationszauber läuft: KON-Rettungswurf, SG 10 oder halber Schaden (das Höhere). Darunter endet der Zauber.</td></tr>
+            <tr><td>Ich liege am Boden.</td><td>Aufstehen kostet die halbe Bewegung. Deine Angriffe haben Nachteil, Nahkampf gegen dich hat Vorteil.</td></tr>
+            <tr><td>Nur bewusstlos schlagen?</td><td>Bei einem Nahkampftreffer, der den Gegner auf 0 TP bringt, ansagen. Dann lebt er und kann verhört werden.</td></tr>
+            <tr><td>Wer würfelt was?</td><td>Du: deine Angriffe, deinen Schaden, deine Rettungswürfe. Der Spielleiter: alles für die Gegner.</td></tr>
+          </tbody></table>
+        </div></details>
+        <details><summary>Trefferpunkte und 0 TP</summary><div class="in">
+          <p>Schaden zieht TP ab, Heilung gibt sie zurück, nie über das Maximum. <b>Temporäre TP</b> schlucken Schaden zuerst und addieren sich nicht.</p>
+          <p><b>Bei 0 TP</b> bist du bewusstlos. Zu Beginn jedes deiner Züge machst du einen <b>Todesrettungswurf</b>: W20 ohne Bonus.</p>
+          <table><tbody>
+            <tr><td>10 oder mehr</td><td>Ein Erfolg. Drei Erfolge: du bist stabil.</td></tr>
+            <tr><td>Unter 10</td><td>Ein Fehlschlag. Drei Fehlschläge: dein Held stirbt.</td></tr>
+            <tr><td>Natürliche 1</td><td>Zählt als zwei Fehlschläge.</td></tr>
+            <tr><td>Natürliche 20</td><td>Du stehst sofort mit 1 TP wieder auf.</td></tr>
+            <tr><td>Getroffen am Boden</td><td>Ein Fehlschlag, ein Nahkampftreffer sogar zwei.</td></tr>
+          </tbody></table>
+          <p>Jede Heilung weckt dich sofort auf.</p>
+        </div></details>
+        <details><summary>Zustände</summary><div class="in">
+          <table><tbody>
+            <tr><td>Verängstigt</td><td>Nachteil auf Proben und Angriffe, solange du die Quelle siehst. Du kannst dich ihr nicht freiwillig nähern.</td></tr>
+            <tr><td>Gepackt</td><td>Bewegung 0. Befreien: Aktion, Athletik oder Akrobatik gegen den SG.</td></tr>
+            <tr><td>Festgesetzt</td><td>Bewegung 0. Angriffe gegen dich Vorteil, deine Angriffe Nachteil.</td></tr>
+            <tr><td>Liegend</td><td>Aufstehen kostet halbe Bewegung. Eigene Angriffe Nachteil, Nahkampf gegen dich Vorteil, Fernkampf Nachteil.</td></tr>
+            <tr><td>Bezaubert</td><td>Du kannst den Bezauberer nicht angreifen.</td></tr>
+            <tr><td>Kampfunfähig</td><td>Keine Aktionen, Bonusaktionen oder Reaktionen.</td></tr>
+            <tr><td>Bewusstlos</td><td>Kampfunfähig, liegend, du lässt alles fallen. Nahkampftreffer gegen dich sind kritisch.</td></tr>
+          </tbody></table>
+        </div></details>
+        <details><summary>Karte und Felder</summary><div class="in">
+          <table><tbody>
+            <tr><td>1 Feld</td><td>1,5 m. 9 m Bewegung sind 6 Felder.</td></tr>
+            <tr><td>Klein und mittel</td><td>1 Feld (Pip und Vino sind etwas kleiner gezeichnet).</td></tr>
+            <tr><td>Groß</td><td>2×2 Felder, zum Beispiel Luna.</td></tr>
+            <tr><td>Riesig, gigantisch</td><td>3×3 und 4×4 Felder.</td></tr>
+          </tbody></table>
+          <p>Dragooner reitet: Seine Figur steht auf Luna, beide bewegen sich in seinem Zug zusammen bis 18 m. Absteigen: Figur auf ein Feld daneben stellen.</p>
+        </div></details>
+        <details><summary>Rasten</summary><div class="in">
+          <p><b>Kurze Rast</b> (1 Stunde): Trefferwürfel ausgeben, pro Würfel heilst du Ergebnis + KON-Bonus. Manche Fähigkeiten laden sich auf.</p>
+          <p><b>Lange Rast</b> (8 Stunden): Alle TP, Zauberplätze und die meisten Fähigkeiten sind wieder voll.</p>
+        </div></details>
+        <details><summary>Abkürzungen</summary><div class="in">
+          <table><tbody>
+            <tr><td>SL</td><td>Spielleiter</td></tr>
+            <tr><td>SG</td><td>Schwierigkeitsgrad, die Zahl, die ein Wurf erreichen muss</td></tr>
+            <tr><td>RK</td><td>Rüstungsklasse, so schwer ist jemand zu treffen</td></tr>
+            <tr><td>TP</td><td>Trefferpunkte</td></tr>
+            <tr><td>RW</td><td>Rettungswurf, zum Beispiel „GES-RW SG 13“</td></tr>
+            <tr><td>W20, 2W6+3</td><td>Würfel mit 20 Seiten. Zwei W6 werfen, zusammenzählen, 3 dazu.</td></tr>
+            <tr><td>STÄ · GES · KON</td><td>Stärke · Geschicklichkeit · Konstitution</td></tr>
+            <tr><td>INT · WEI · CHA</td><td>Intelligenz · Weisheit · Charisma</td></tr>
+          </tbody></table>
+        </div></details>
+        <div class="box">Werte, Angriffe und Zauber deines Helden stehen auf deinem Bogen im Spielerhandbuch. Den Link dazu hat dir der Spielleiter geschickt.</div>
+        <div class="box"><b>Stopp-Regel:</b> Wird dir eine Szene zu viel, schreib „X“ in den Discord-Chat. Der Spielleiter springt ohne Nachfrage weiter.</div>
       </div>
 
       <div class="pane" id="p-hilfe" hidden>
@@ -358,20 +516,32 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
             <li><b>Karte bewegen:</b> auf eine freie Stelle klicken und ziehen. <b>Zoomen:</b> Mausrad oder die Knöpfe unten rechts.</li>
             <li><b>Etwas zeigen:</b> Doppelklick auf die Karte setzt einen leuchtenden Punkt, den alle sehen.</li>
             <li><b>Würfeln:</b> Reiter „Würfel“. Bonus eintragen, bei Bedarf Vorteil oder Nachteil wählen, dann auf den Würfel klicken. Alle sehen dein Ergebnis im Protokoll.</li>
+            <li><b>Regeln nachschlagen:</b> Reiter „Regeln“. Dort steht das Wichtigste aus dem Spielerhandbuch.</li>
             <li>Gesprochen wird weiter in Discord. Ein Konto brauchst du nicht.</li>
           </ul>
         </div>
         <div class="sec gm" hidden>
           <h3>Für dich als Spielleiter</h3>
           <ul class="help">
-            <li><b>Szenen</b> vorbereiten: Reiter „Szenen“, neue Szene anlegen, im Reiter „Karte &amp; Nebel“ ein Kartenbild hochladen und das Raster einstellen.</li>
+            <li><b>Szenen</b> vorbereiten: Reiter „Szenen“, neue Szene anlegen, im Reiter „Karte“ ein Kartenbild hochladen und das Raster einstellen.</li>
             <li><b>Figuren</b> setzen: Reiter „Figuren“. Helden und die Gegner der beiden Abenteuer sind schon vorbereitet. Gegner sind beim Hinzufügen <b>versteckt</b>, bis du sie zeigst.</li>
             <li><b>Figur anklicken</b> wählt sie aus. Oben im Reiter „Figuren“ kannst du dann TP ändern, sie zeigen oder verstecken, „am Zug“ markieren oder entfernen.</li>
-            <li><b>Nebel:</b> Reiter „Karte &amp; Nebel“, Nebel einschalten, „Alles verdecken“ und dann mit „Aufdecken“ freimalen.</li>
+            <li><b>Nebel:</b> Reiter „Karte“, Nebel einschalten, „Alles verdecken“ und dann mit „Aufdecken“ freimalen.</li>
             <li>Die Spieler verbinden sich direkt mit deinem Fenster. <b>Lass den Spieltisch also offen</b>, solange gespielt wird. Den Link für die Spieler findest du oben rechts und im Reiter „Szenen“.</li>
             <li>Alles wird in diesem Browser gespeichert. Nutze immer denselben Browser oder sichere vorher im Reiter „Szenen“.</li>
             <li>„Verdeckt würfeln“ zeigt den Wurf nur dir.</li>
           </ul>
+        </div>
+      </div>
+      <div class="music" id="musicBox" hidden>
+        <div class="yt" id="ytWrap"><div id="ytHost"></div></div>
+        <div class="ctl">
+          <span class="label">Musik</span>
+          <span class="now" id="mNow">–</span>
+          <label class="label" for="mVol">Lautstärke für dich</label>
+          <input type="range" id="mVol" min="0" max="100" step="1">
+          <div class="row"><button class="btn sm" id="mMute">Stumm</button><button class="btn sm pri" id="mStart" hidden>▶ Musik einschalten</button></div>
+          <p class="note" id="mErr"></p>
         </div>
       </div>
     </aside>
@@ -447,7 +617,7 @@ let theme="standard";
 function applyTheme(v){theme=THEMES[v]?v:"standard";const th=THEMES[theme];
   if(theme==="standard")delete document.body.dataset.adv;else document.body.dataset.adv=theme;
   $("#title").textContent=th.t;$("#subtitle").textContent=th.s;$("#subtitle").hidden=!th.s;
-  document.title=theme==="standard"?"Spieltisch":th.t+" · Spieltisch";const ts=$("#themeSel");if(ts)ts.value=theme;
+  $("#hausregel").hidden=theme!=="rasur";document.title=theme==="standard"?"Spieltisch":th.t+" · Spieltisch";const ts=$("#themeSel");if(ts)ts.value=theme;
   const sc=scenes[viewSid()];if(sc){const g=geo(sc);if(g)drawFog(sc,g)}}
 
 /* ---------- Geometrie ---------- */
@@ -490,6 +660,7 @@ function startHost(){
   peer=new Peer(PREFIX+tableCode(),{debug:0});
   peer.on("open",()=>{setConn("Tisch offen · 0 Spieler","ok");updateRoster()});
   peer.on("connection",c=>{
+    if(c.label==="audio"||(c.metadata&&c.metadata.kind==="audio")){onAudioConn(c);return}
     c.on("open",()=>{conns.set(c.peer,{conn:c,me:"",maps:new Set(),ok:false});setTimeout(()=>{const x=conns.get(c.peer);if(x&&!x.ok){try{c.close()}catch(e){}conns.delete(c.peer)}},20000)});
     c.on("data",d=>onPlayerData(c.peer,d));
     c.on("close",()=>{conns.delete(c.peer);updateRoster()});
@@ -530,7 +701,7 @@ function onPlayerData(id,d){
     if(d.type!=="join")return;
     const pw=ls.get("tisch-pw","");const now=Date.now();fails=fails.filter(t=>now-t<60000);
     if(pw&&(fails.length>=10||String(d.pw||"")!==pw)){fails.push(now);sendTo(id,{type:"denied",msg:fails.length>10?"busy":"pw"});setTimeout(()=>{try{c.conn.close()}catch(e){}conns.delete(id);updateRoster()},400);return}
-    c.ok=true;c.me=HMAP[d.me]?d.me:"";sendTo(id,{type:"welcome"});if(Object.keys(imgCache).length)sendTo(id,{type:"imgs",imgs:imgCache});sendState(id);sendTo(id,{type:"log",log});updateRoster();return;
+    c.ok=true;c.me=HMAP[d.me]?d.me:"";sendTo(id,{type:"welcome"});sendTo(id,{type:"music",m:mState});if(Object.keys(imgCache).length)sendTo(id,{type:"imgs",imgs:imgCache});sendState(id);sendTo(id,{type:"log",log});updateRoster();return;
   }
   if(d.type==="me"){c.me=HMAP[d.me]?d.me:"";updateRoster()}
   else if(d.type==="mv"){applyMove(d)}
@@ -568,7 +739,8 @@ function connectHost(){
 function sendHost(msg){if(hostConn&&hostOk){try{hostConn.send(msg);return true}catch(e){}}return false}
 function onHostData(d){
   if(!d||typeof d!=="object")return;
-  if(d.type==="welcome"){hostOk=true;needPw=false;$("#pwBox").hidden=true;setConn("Verbunden","ok");render();return}
+  if(d.type==="music"&&hostOk!==null){if(d.m===null||(d.m&&typeof d.m==="object")){const m=d.m;mState=m?{n:String(m.n||"").slice(0,80),vid:/^[A-Za-z0-9_-]{11}$/.test(m.vid||"")?m.vid:null,list:/^[A-Za-z0-9_-]{10,64}$/.test(m.list||"")?m.list:null,aid:/^[a-z0-9]{6,30}$/.test(m.aid||"")?m.aid:null,start:+m.start||Date.now(),loop:!!m.loop}:null;if(mState&&!mState.vid&&!mState.list&&!mState.aid)mState=null;applyMusic()}return}
+  if(d.type==="welcome"){hostOk=true;needPw=false;openAudioConn();$("#pwBox").hidden=true;setConn("Verbunden","ok");render();return}
   if(d.type==="denied"){hostOk=false;needPw=true;const had=ls.get("tisch-pw-"+joinCode,"");ls.set("tisch-pw-"+joinCode,"");
     $("#pwBox").hidden=false;$("#pwErr").textContent=d.msg==="busy"?"Zu viele Versuche. Warte eine Minute.":(had?"Das Passwort stimmt nicht.":"");setTimeout(()=>$("#pwIn").focus(),50);return}
   if(!hostOk)return;
@@ -617,7 +789,7 @@ async function ensureMap(id){if(mapCache[id]||!isGM)return;const d=await store.g
 /* ---------- Sichern und Laden ---------- */
 async function exportAll(){
   const maps={};for(const s of Object.values(scenes)){if(s.map&&!maps[s.map]){maps[s.map]=mapCache[s.map]||await store.get("map:"+s.map)||null}}
-  const blob=new Blob([JSON.stringify({app:"spieltisch",v:2,scenes,aktiv,maps,imgs:imgCache,theme,code:tableCode(),pw:ls.get("tisch-pw","")})],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({app:"spieltisch",v:2,scenes,aktiv,maps,imgs:imgCache,theme,music:{tracks},code:tableCode(),pw:ls.get("tisch-pw","")})],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   const d=new Date();a.download="Spieltisch-Sicherung-"+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+".json";
   document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
@@ -633,6 +805,7 @@ async function importAll(file){
     for(const [id,d] of Object.entries(j.maps||{})){if(typeof d==="string"&&d.startsWith("data:image/")){await store.set("map:"+id,d);mapCache[id]=d}}
     scenes=j.scenes;aktiv=j.aktiv&&scenes[j.aktiv]?j.aktiv:(Object.keys(scenes)[0]||null);cur=aktiv;ls.set("tisch-cur",cur);
     for(const c of conns.values())c.maps.clear();
+    if(j.music&&Array.isArray(j.music.tracks)){tracks=j.music.tracks.filter(t=>t&&typeof t.u==="string").map(t=>({n:String(t.n||"Titel"),u:t.u}));store.set("music",{tracks});renderTracks()}
     if(typeof j.theme==="string"){applyTheme(j.theme);await store.set("theme",theme)}
     await store.set("scenes",scenes);await store.set("aktiv",aktiv);
     if(typeof j.pw==="string"){ls.set("tisch-pw",j.pw);$("#gmPw").value=j.pw}
@@ -964,6 +1137,136 @@ let welcome=null;
 meSel.value=me;meSel.onchange=()=>{if(welcome){welcome.remove();welcome=null}me=meSel.value;ls.set("tisch-me",me);sendHost({type:"me",me});render()};
 setTimeout(()=>{$("#hint").hidden=true},12000);
 
+
+/* ---------- Musik: YouTube oder eigene Dateien ---------- */
+let tracks=[];          // Spielleiter: [{n,u}] (YouTube) oder [{n,a,sz}] (eigene Datei)
+let mState=null;        // {n,vid,list,aid,start,loop} oder null
+let yt=null,ytReady=false,ytLoading=false,ytKey="",mMuted=false;
+const aud=new Audio();aud.preload="auto";
+let audioCache={};      // Datei-ID -> Blob-URL
+const audioConns=new Map();const audioSent=new Map();let audioConn=null;
+function parseYT(u){u=String(u||"").trim();let vid=null,list=null;
+  const m=u.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);if(m)vid=m[1];
+  const l=u.match(/[?&]list=([A-Za-z0-9_-]{10,64})/);if(l)list=l[1];
+  return (vid||list)?{vid,list}:null}
+function loadYTApi(){if(ytLoading||ytReady)return;ytLoading=true;
+  window.onYouTubeIframeAPIReady=()=>{yt=new YT.Player("ytHost",{width:200,height:200,playerVars:{autoplay:1,controls:0,disablekb:1,rel:0,playsinline:1,iv_load_policy:3,origin:location.origin},
+    events:{onReady:()=>{ytReady=true;setVol();applyMusic(true)},onStateChange:onYTState,onError:e=>{const c=e&&e.data;$("#mErr").textContent=(c===101||c===150)?"Dieses Video erlaubt kein Abspielen auf anderen Seiten. Nimm eine andere Version.":"Der Titel konnte nicht abgespielt werden."}}})};
+  const sc=document.createElement("script");sc.src="https://www.youtube.com/iframe_api";sc.onerror=()=>{$("#mErr").textContent="YouTube ist nicht erreichbar."};document.head.appendChild(sc)}
+function setVol(){const v=ls.get("tisch-vol",40);$("#mVol").value=v;aud.volume=clamp(v/100,0,1);aud.muted=mMuted;
+  if(yt&&ytReady){try{yt.setVolume(v);mMuted?yt.mute():yt.unMute()}catch(e){}}$("#mMute").textContent=mMuted?"Ton an":"Stumm"}
+let synced=false,startChk=null,audKey="";
+function stopYT(){ytKey="";if(yt&&ytReady){try{yt.stopVideo()}catch(e){}}}
+function stopAud(){audKey="";try{aud.pause()}catch(e){}}
+async function audioUrl(id){if(audioCache[id])return audioCache[id];if(!isGM)return null;
+  const r=await store.get("audio:"+id);if(!r||!r.buf)return null;audioCache[id]=URL.createObjectURL(new Blob([r.buf],{type:r.mime||"audio/mpeg"}));return audioCache[id]}
+async function applyMusic(force){
+  const box=$("#musicBox");
+  if(!mState){box.hidden=true;stopYT();stopAud();renderTracks();return}
+  box.hidden=false;$("#mNow").textContent=mState.n||"Musik";$("#mErr").textContent="";
+  const isFile=!!mState.aid;$("#ytWrap").hidden=isFile;box.classList.toggle("file",isFile);
+  if(isFile){
+    stopYT();
+    const key=mState.aid+"|"+mState.start;
+    const url=await audioUrl(mState.aid);
+    if(!url){$("#mNow").textContent=(mState.n||"Musik")+" (wird geladen …)";if(isGM)$("#mErr").textContent="Die Datei fehlt auf diesem Rechner. Füge sie im Reiter „Musik“ neu hinzu.";renderTracks();return}
+    if(key!==audKey||force){audKey=key;aud.loop=!!mState.loop;
+      if(aud.src!==url)aud.src=url;
+      const seek=()=>{const d=aud.duration;let off=Math.max(0,(Date.now()-mState.start)/1000);if(d>0&&isFinite(d)){off=mState.loop?off%d:Math.min(off,d)}try{aud.currentTime=off}catch(e){}};
+      if(aud.readyState>=1)seek();else aud.addEventListener("loadedmetadata",seek,{once:true});
+      setVol();aud.play().then(()=>{$("#mStart").hidden=true}).catch(()=>{$("#mStart").hidden=false});
+    }else{aud.loop=!!mState.loop}
+    renderTracks();return;
+  }
+  stopAud();
+  if(!ytReady){loadYTApi();renderTracks();return}
+  const key=(mState.vid||"")+"|"+(mState.list||"")+"|"+mState.start;
+  if(key!==ytKey||force){ytKey=key;synced=false;
+    const off=Math.max(0,(Date.now()-mState.start)/1000);
+    try{if(mState.list)yt.loadPlaylist({list:mState.list,listType:"playlist",index:0,startSeconds:0});else yt.loadVideoById({videoId:mState.vid,startSeconds:off<36000?off:0});yt.setLoop(!!mState.loop)}catch(e){}
+    clearTimeout(startChk);startChk=setTimeout(()=>{let st=-1;try{st=yt.getPlayerState()}catch(e){}$("#mStart").hidden=(st===1||st===3)},2500);
+  }
+  renderTracks();
+}
+function onYTState(e){
+  if(e.data===1){$("#mStart").hidden=true;
+    if(!synced&&mState&&mState.vid&&!mState.list){synced=true;try{const d=yt.getDuration();const off=(Date.now()-mState.start)/1000;if(d>0&&off>d&&mState.loop)yt.seekTo(off%d,true)}catch(x){}}}
+  if(e.data===0&&mState&&mState.loop&&!mState.list){try{yt.seekTo(0,true);yt.playVideo()}catch(x){}}
+}
+setVol();
+$("#mVol").oninput=()=>{ls.set("tisch-vol",+$("#mVol").value);if(mMuted&&+$("#mVol").value>0)mMuted=false;setVol()};
+$("#mMute").onclick=()=>{mMuted=!mMuted;setVol()};
+$("#mStart").onclick=()=>{if(mState&&mState.aid){aud.play().catch(()=>{})}else{try{yt.unMute();yt.playVideo()}catch(e){}}$("#mStart").hidden=true};
+
+/* Dateien an Spieler schicken (eigener Kanal, damit Figuren und Würfe nicht warten) */
+async function pushAudio(pid,aid){
+  const ac=audioConns.get(pid);if(!ac||!ac.open)return;
+  let s=audioSent.get(pid);if(!s){s=new Set();audioSent.set(pid,s)}if(s.has(aid))return;s.add(aid);
+  const r=await store.get("audio:"+aid);if(!r||!r.buf){s.delete(aid);return}
+  try{ac.send({type:"file",id:aid,mime:r.mime||"audio/mpeg",buf:r.buf})}catch(e){s.delete(aid)}
+}
+function pushCurrentAudio(){if(!mState||!mState.aid)return;for(const id of okIds())pushAudio(id,mState.aid)}
+function onAudioConn(c){
+  c.on("open",()=>{const x=conns.get(c.peer);if(!x||!x.ok){try{c.close()}catch(e){}return}audioConns.set(c.peer,c);audioSent.set(c.peer,new Set());if(mState&&mState.aid)pushAudio(c.peer,mState.aid)});
+  c.on("close",()=>{if(audioConns.get(c.peer)===c){audioConns.delete(c.peer);audioSent.delete(c.peer)}});
+  c.on("error",()=>{});
+}
+function openAudioConn(){
+  if(audioConn){try{audioConn.close()}catch(e){}}
+  const c=peer.connect(PREFIX+joinCode,{reliable:true,label:"audio",metadata:{kind:"audio"}});audioConn=c;
+  c.on("data",d=>{if(!d||d.type!=="file"||typeof d.id!=="string"||!/^[a-z0-9]{6,30}$/.test(d.id))return;
+    const mime=String(d.mime||"");if(!mime.startsWith("audio/"))return;
+    let buf=d.buf;if(buf&&buf.buffer&&!(buf instanceof ArrayBuffer))buf=buf.buffer;if(!(buf instanceof ArrayBuffer))return;
+    if(audioCache[d.id])URL.revokeObjectURL(audioCache[d.id]);
+    audioCache[d.id]=URL.createObjectURL(new Blob([buf],{type:mime}));
+    if(mState&&mState.aid===d.id)applyMusic(true)});
+  c.on("error",()=>{});
+}
+
+/* Spielleiter: Titelliste */
+function playTrack(i){const t=tracks[i];if(!t)return;
+  if(t.a){mState={n:t.n,aid:t.a,start:Date.now(),loop:$("#mLoop").checked,i}}
+  else{const p=parseYT(t.u);if(!p){banner("Das ist kein gültiger YouTube-Link.",true);return}mState={n:t.n,vid:p.vid,list:p.list,start:Date.now(),loop:$("#mLoop").checked,i}}
+  pushCurrentAudio();saveMusic();applyMusic(true)}
+function saveMusic(){if(!isGM)return;store.set("music",{tracks});sendAll({type:"music",m:mState})}
+function fmtMB(b){return (b/1048576).toFixed(1).replace(".",",")+" MB"}
+function renderTracks(){if(!isGM)return;const box=$("#trackList");box.textContent="";
+  if(!tracks.length){box.appendChild(el("p","note","Noch keine Titel. Füg unten welche hinzu."));return}
+  tracks.forEach((t,i)=>{const on=mState&&mState.i===i;const r=el("div","track"+(on?" on":""));
+    const pl=el("button","btn sm"+(on?" on":""),on?"♪":"▶");pl.setAttribute("aria-label",t.n+" abspielen");pl.onclick=()=>playTrack(i);
+    const up=el("button","btn sm","↑");up.setAttribute("aria-label","nach oben");up.onclick=()=>{if(i>0){[tracks[i-1],tracks[i]]=[tracks[i],tracks[i-1]];if(mState&&mState.i===i)mState.i=i-1;else if(mState&&mState.i===i-1)mState.i=i;saveMusic();renderTracks()}};
+    const del=el("button","btn sm dng","✕");del.setAttribute("aria-label",t.n+" entfernen");del.onclick=()=>{const tr=tracks[i];tracks.splice(i,1);
+      if(tr.a&&!tracks.some(x=>x.a===tr.a)){store.del("audio:"+tr.a);if(audioCache[tr.a]){URL.revokeObjectURL(audioCache[tr.a]);delete audioCache[tr.a]}}
+      if(mState&&mState.i===i){mState=null;applyMusic()}else if(mState&&mState.i>i)mState.i--;saveMusic();renderTracks()};
+    const lab=el("span","t",t.n);if(t.a)lab.appendChild(el("span","note"," · Datei"+(t.sz?" "+fmtMB(t.sz):"")));else lab.appendChild(el("span","note"," · YouTube"));
+    const rn=el("button","btn sm","✎");rn.setAttribute("aria-label",t.n+" umbenennen");rn.onclick=()=>{const v=prompt("Neuer Name für den Titel:",t.n);if(v&&v.trim()){t.n=v.trim().slice(0,80);if(mState&&mState.i===i)mState.n=t.n;saveMusic();renderTracks();applyMusic()}};
+    r.append(pl,lab,rn,up,del);box.appendChild(r)})}
+$("#mStop").onclick=()=>{mState=null;saveMusic();applyMusic()};
+$("#mLoop").onchange=()=>{if(mState){mState.loop=$("#mLoop").checked;saveMusic();aud.loop=mState.loop;try{yt.setLoop(mState.loop)}catch(e){}}};
+$("#tAdd").onclick=()=>{const u=$("#tUrl").value.trim();const p=parseYT(u);if(!p){$("#tMsg").textContent="Das ist kein YouTube-Link.";return}
+  tracks.push({n:$("#tName").value.trim()||"Titel "+(tracks.length+1),u});$("#tName").value="";$("#tUrl").value="";$("#tMsg").textContent="Hinzugefügt.";saveMusic();renderTracks()};
+$("#tBulkAdd").onclick=()=>{let n=0;$("#tBulk").value.split(/\n/).forEach(line=>{const m=line.match(/https?:\/\/\S+/);if(!m||!parseYT(m[0]))return;
+  const name=line.slice(0,m.index).replace(/[\s,;|:–-]+$/,"").trim()||"Titel "+(tracks.length+1);tracks.push({n:name,u:m[0]});n++});
+  $("#tBulk").value="";$("#tMsg").textContent=n+" Titel hinzugefügt.";saveMusic();renderTracks()};
+$("#fAdd").onchange=async e=>{
+  const files=[...e.target.files];e.target.value="";const st=$("#fMsg");let n=0;
+  for(const f of files){
+    if(!/^audio\//.test(f.type)&&!/\.(mp3|ogg|m4a|wav|opus)$/i.test(f.name)){st.textContent=f.name+" ist keine Musikdatei.";continue}
+    if(f.size>40*1048576){st.textContent=f.name+" ist zu groß (über 40 MB). Nimm eine kleinere MP3.";continue}
+    st.textContent="Speichere "+f.name+" …";
+    const id="a"+uid()+uid();const buf=await f.arrayBuffer();
+    const ok=await store.set("audio:"+id,{buf,mime:f.type||"audio/mpeg"});
+    if(!ok){st.textContent="Der Browser-Speicher ist voll. Entferne alte Dateien.";break}
+    tracks.push({n:f.name.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||"Titel",a:id,sz:f.size});n++;
+  }
+  if(n)st.textContent=n+" Datei"+(n>1?"en":"")+" gespeichert.";saveMusic();renderTracks()};
+$("#fPush").onclick=async()=>{const ids=tracks.filter(t=>t.a).map(t=>t.a);const ps=okIds().filter(id=>audioConns.has(id));
+  if(!ids.length){$("#fMsg").textContent="Noch keine eigenen Dateien.";return}
+  if(!ps.length){$("#fMsg").textContent="Gerade ist kein Spieler verbunden.";return}
+  $("#fMsg").textContent="Sende "+ids.length+" Dateien an "+ps.length+" Spieler … Das kann ein paar Minuten dauern, ihr könnt dabei schon spielen.";
+  for(const a of ids)for(const p of ps)await pushAudio(p,a);
+  $("#fMsg").textContent="Alle Dateien sind unterwegs zu den Spielern."};
+
 /* ---------- Start ---------- */
 (async()=>{
   if(isGM){
@@ -971,6 +1274,7 @@ setTimeout(()=>{$("#hint").hidden=true},12000);
     if(!ok)banner("Dieser Browser erlaubt keinen Speicher (privates Fenster?). Szenen gehen beim Schließen verloren.",true,12000);
     imgCache=(await store.get("imgs"))||{};
     applyTheme((await store.get("theme"))||"standard");
+    {const mu=await store.get("music");tracks=(mu&&Array.isArray(mu.tracks))?mu.tracks:[];renderTracks()}
     $("#themeSel").onchange=()=>{applyTheme($("#themeSel").value);persist();broadcastSoon()};
     scenes=(await store.get("scenes"))||{};aktiv=(await store.get("aktiv"))||null;log=(await store.get("log"))||[];
     cur=ls.get("tisch-cur",null);if(!cur||!scenes[cur])cur=aktiv&&scenes[aktiv]?aktiv:(Object.keys(scenes)[0]||null);
