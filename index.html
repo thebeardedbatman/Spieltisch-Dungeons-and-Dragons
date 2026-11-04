@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpolygon points=%2216,2 29,9 29,23 16,30 3,23 3,9%22 fill=%22%23A3561A%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2211%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22 font-weight=%22bold%22%3E20%3C/text%3E%3C/svg%3E">
+<title>Spieltisch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Aufbau: Kopfzeile, links die Karte (zoom- und verschiebbar), rechts die Seitenleiste mit Reitern */
+:root{
+  --bg:#E6EAE5;--surface:#F5F6F2;--surface-2:#DCE2DB;--ink:#1C2220;--muted:#58635E;--line:#BFC8C1;
+  --accent:#A3561A;--accent-ink:#FFF8EE;--moss:#45624A;--danger:#A23A2E;--good:#3C6E47;
+  --table:#20251F;
+  --f-display:"IM Fell English SC",Georgia,serif;--f-ui:"Alegreya Sans","Segoe UI",system-ui,sans-serif;--r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111513;--surface:#1A201D;--surface-2:#242C28;--ink:#E3E6DE;--muted:#9AA59E;--line:#34403A;
+  --accent:#E39A4E;--accent-ink:#1A1208;--moss:#8DB394;--danger:#E07A6B;--good:#86C292;--table:#0B0E0C;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111513;--surface:#1A201D;--surface-2:#242C28;--ink:#E3E6DE;--muted:#9AA59E;--line:#34403A;
+  --accent:#E39A4E;--accent-ink:#1A1208;--moss:#8DB394;--danger:#E07A6B;--good:#86C292;--table:#0B0E0C;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.4;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;line-height:1.15}
+p{margin:0}
+.app{display:grid;grid-template-rows:auto auto minmax(0,1fr);height:100vh;height:100dvh}
+header.bar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+header.bar h1{font-size:1.5rem}
+.scn{font-weight:700;color:var(--accent);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}
+.chip{font-size:.78rem;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+.chip.ok{background:var(--good);color:var(--surface);border-color:var(--good)}
+.chip.warn{background:var(--danger);color:var(--surface);border-color:var(--danger)}
+.who{display:flex;gap:4px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);align-items:center}
+.who span{background:var(--surface-2);border-radius:999px;padding:1px 8px;color:var(--ink)}
+.sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r);padding:5px 11px;cursor:pointer;font-weight:500;font-size:.9rem;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:2px 8px;font-size:.82rem}
+.btn.on{background:var(--moss);border-color:var(--moss);color:var(--surface)}
+.btn.dng{color:var(--danger)}
+.btn[disabled]{opacity:.5;cursor:default}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;min-height:0}
+.main.noside{grid-template-columns:minmax(0,1fr) 0}
+.main.noside aside{display:none}
+#stage{position:relative;overflow:hidden;background:var(--table);touch-action:none;cursor:grab;min-height:0}
+#stage.paint{cursor:crosshair}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#mapimg{position:absolute;left:0;top:0;user-select:none;-webkit-user-drag:none;pointer-events:none}
+#blank{position:absolute;left:0;top:0;background:#c9bfa5}
+canvas{position:absolute;left:0;top:0;pointer-events:none}
+#toks{position:absolute;left:0;top:0}
+.tok{position:absolute;display:grid;place-items:center;touch-action:none;user-select:none}
+.tok .face{width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.6);background-size:cover;background-position:center;font-weight:700;color:#fff;text-shadow:0 1px 3px #000;border:3px solid #8c2a22}
+.tok.hero .face{border:0;box-shadow:0 3px 10px rgba(0,0,0,.6)}
+.tok .face img{width:100%;height:100%;display:block;pointer-events:none}
+.tok .nm{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:2px;font-size:13px;font-weight:700;color:#fff;background:rgba(0,0,0,.62);padding:0 6px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.tok .hpb{position:absolute;left:8%;right:8%;bottom:-3px;height:6px;background:rgba(0,0,0,.6);border-radius:3px;overflow:hidden;pointer-events:none}
+.tok .hpb i{display:block;height:100%;background:#4caf50}
+.tok .hpb i.low{background:#e0533f}
+.tok.mine,.tok.drag{cursor:grab}
+.tok.drag{z-index:5;opacity:.85}
+.tok.sel .face{outline:3px solid #ffd27a;outline-offset:2px}
+.tok.turn::before{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid #ffd27a;box-shadow:0 0 18px 4px rgba(255,200,90,.8);animation:pulse 1.6s ease-in-out infinite;pointer-events:none}
+.tok.hid{opacity:.45}
+.tok.hid .face{border-style:dashed}
+.tok.down .face{filter:grayscale(1) brightness(.6)}
+@keyframes pulse{50%{box-shadow:0 0 6px 1px rgba(255,200,90,.4)}}
+.ping{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:4px solid #ffd27a;pointer-events:none;animation:ping 1.8s ease-out forwards}
+.ping b{position:absolute;left:50%;top:-26px;transform:translateX(-50%);white-space:nowrap;font-size:14px;color:#fff;background:rgba(0,0,0,.7);padding:1px 6px;border-radius:4px}
+@keyframes ping{0%{transform:scale(.4);opacity:1}100%{transform:scale(5);opacity:0}}
+@media (prefers-reduced-motion: reduce){.tok.turn::before,.ping{animation:none}}
+.zoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:4px;z-index:10}
+.zoom .btn{min-width:38px;background:var(--surface)}
+.hint{position:absolute;left:10px;bottom:10px;z-index:10;font-size:.82rem;background:rgba(0,0,0,.6);color:#fff;padding:4px 10px;border-radius:var(--r);max-width:min(70%,520px)}
+.pwbox{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(5,6,5,.88);padding:16px}
+.pwbox form{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;display:grid;gap:12px;width:min(100%,380px)}
+.pwbox h2{font-size:1.5rem}
+.pwbox input{width:100%;padding:8px 10px;font-size:1rem}
+.pwbox .err{color:var(--danger);font-size:.9rem;min-height:1.2em}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:#cfd6cf;text-align:center;padding:24px;z-index:9;pointer-events:none}
+aside{border-left:1px solid var(--line);background:var(--surface);display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;padding:9px 12px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.pane{overflow-y:auto;padding:14px 16px 24px;display:grid;gap:16px;align-content:start}
+.sec{display:grid;gap:8px}
+.sec h3{font-size:1.15rem}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.note{font-size:.84rem;color:var(--muted)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row label{display:flex;gap:6px;align-items:center}
+input[type=number],input[type=text],select{padding:5px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);min-width:0}
+input[type=number]{width:72px}
+input[type=color]{width:40px;height:30px;padding:0;border:1px solid var(--line);border-radius:var(--r);background:none}
+.dice{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.die{padding:8px 4px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);cursor:pointer;font-weight:700}
+.die:hover{border-color:var(--accent)}
+.die.d20{grid-column:span 2;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{flex:1;border:0;background:var(--bg);padding:5px 8px;cursor:pointer;font-size:.85rem}
+.seg button[aria-pressed="true"]{background:var(--moss);color:var(--surface)}
+.result{display:flex;gap:12px;align-items:baseline;background:var(--bg);border-radius:var(--r);padding:8px 12px;min-height:56px}
+.result .tot{font-size:2.2rem;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;min-width:2.2ch;text-align:right}
+.result .tot.crit{color:var(--good)}.result .tot.fum{color:var(--danger)}
+.result .det{font-size:.88rem;min-width:0;overflow-wrap:anywhere}
+.log{display:grid;gap:4px;font-size:.88rem}
+.log div{display:flex;gap:8px;justify-content:space-between;border-bottom:1px dotted var(--line);padding:3px 0}
+.log b{font-variant-numeric:tabular-nums}
+.log .loc{color:var(--muted);font-style:italic}
+.toklist{display:grid;gap:4px}
+.toklist button{display:flex;justify-content:space-between;gap:8px;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:var(--r);padding:4px 8px;cursor:pointer}
+.toklist button.sel{border-color:var(--accent)}
+.selbox{border:1px solid var(--accent);border-radius:var(--r);padding:10px 12px;display:grid;gap:8px}
+.scenes{display:grid;gap:6px}
+.scene{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--r);padding:6px 8px;background:var(--bg)}
+.scene.cur{border-color:var(--accent)}
+.scene .t{flex:1 1 120px;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.badge{font-size:.7rem;font-weight:700;background:var(--good);color:var(--surface);padding:1px 7px;border-radius:999px}
+.banner{background:var(--danger);color:#fff;padding:6px 16px;font-size:.9rem}
+.banner.info{background:var(--moss)}
+ul.help{margin:0;padding-left:1.2em;display:grid;gap:6px}
+@media (max-width:820px){
+  body{overflow:auto}
+  .app{height:auto;min-height:100vh}
+  .main{grid-template-columns:1fr;grid-template-rows:62vh auto}
+  .main.noside{grid-template-rows:80vh 0}
+  aside{border-left:0;border-top:1px solid var(--line)}
+  .pane{overflow:visible}
+  .scn{max-width:60vw}
+}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <h1>Spieltisch</h1>
+    <span class="scn" id="scn">–</span>
+    <span class="chip" id="conn">Verbinde …</span>
+    <div class="who" id="who"></div>
+    <span class="sp"></span>
+    <label class="row" id="meBox" hidden><span class="label">Ich spiele</span><select id="me"></select></label>
+    <button class="btn pri" id="linkBtn" hidden>Spieler-Link kopieren</button>
+    <button class="btn" id="sideBtn" aria-pressed="true">Seitenleiste</button>
+  </header>
+  <div id="banners"></div>
+  <div class="main" id="main">
+    <div id="stage">
+      <div id="world">
+        <div id="blank"></div>
+        <img id="mapimg" alt="">
+        <canvas id="grid"></canvas>
+        <div id="toks"></div>
+        <canvas id="fog"></canvas>
+        <div id="pings"></div>
+      </div>
+      <div class="empty" id="empty" hidden></div>
+      <div class="pwbox" id="pwBox" hidden>
+        <form id="pwForm">
+          <h2>Geschützter Spieltisch</h2>
+          <p>Gib das Passwort ein, das dir der Spielleiter gegeben hat.</p>
+          <input type="password" id="pwIn" autocomplete="current-password" aria-label="Passwort">
+          <p class="err" id="pwErr"></p>
+          <button class="btn pri" type="submit">Beitreten</button>
+        </form>
+      </div>
+      <div class="hint" id="hint">Ziehen verschiebt die Karte, Mausrad zoomt. Doppelklick setzt einen Hinweis-Punkt für alle.</div>
+      <div class="zoom">
+        <button class="btn" id="zin" aria-label="Hineinzoomen">+</button>
+        <button class="btn" id="zout" aria-label="Herauszoomen">−</button>
+        <button class="btn sm" id="zfit">Ganz</button>
+      </div>
+    </div>
+    <aside>
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab" role="tab" data-t="wuerfel" aria-selected="true">Würfel</button>
+        <button class="tab gm" role="tab" data-t="figuren" aria-selected="false" hidden>Figuren</button>
+        <button class="tab gm" role="tab" data-t="karte" aria-selected="false" hidden>Karte &amp; Nebel</button>
+        <button class="tab gm" role="tab" data-t="szenen" aria-selected="false" hidden>Szenen</button>
+        <button class="tab" role="tab" data-t="hilfe" aria-selected="false">Hilfe</button>
+      </div>
+
+      <div class="pane" id="p-wuerfel">
+        <div class="sec">
+          <div class="result" aria-live="polite"><span class="tot" id="tot">–</span><span class="det" id="det">Wähle einen Würfel.</span></div>
+          <div class="row">
+            <label><span class="label">Anzahl</span><input type="number" id="dn" value="1" min="1" max="20"></label>
+            <label><span class="label">Bonus</span><input type="number" id="db" value="0" min="-20" max="30"></label>
+          </div>
+          <div class="seg" role="group" aria-label="W20-Modus" id="mode">
+            <button data-m="-1" aria-pressed="false">Nachteil</button><button data-m="0" aria-pressed="true">Normal</button><button data-m="1" aria-pressed="false">Vorteil</button>
+          </div>
+          <div class="dice" id="dice"></div>
+          <label class="row gm" hidden><input type="checkbox" id="secret"> Verdeckt würfeln (nur du siehst es)</label>
+          <p class="note">Bonus und Vorteil gelten für den W20. Den Bonus findest du auf deinem Bogen im Spielerhandbuch.</p>
+        </div>
+        <div class="sec">
+          <h3>Würfelprotokoll</h3>
+          <div class="log" id="log"><p class="note">Noch nichts gewürfelt.</p></div>
+        </div>
+      </div>
+
+      <div class="pane" id="p-figuren" hidden>
+        <div class="sec" id="selSec" hidden></div>
+        <div class="sec">
+          <h3>Helden</h3>
+          <div class="row" id="heroBtns"></div>
+          <p class="note">Klick setzt den Helden in die Mitte des Bildausschnitts. Ein zweiter Klick entfernt ihn wieder.</p>
+        </div>
+        <div class="sec">
+          <h3>Die letzte Rasur</h3>
+          <div class="row" id="pre-rasur"></div>
+        </div>
+        <div class="sec">
+          <h3>Der Bart des Drachen</h3>
+          <div class="row" id="pre-drache"></div>
+        </div>
+        <div class="sec">
+          <h3>Eigene Figur</h3>
+          <div class="row">
+            <input type="text" id="cn" placeholder="Name, z. B. Wolf" style="flex:1 1 140px">
+          </div>
+          <div class="row">
+            <select id="cs"><option value="0.7">Klein</option><option value="1" selected>Mittel (1 Feld)</option><option value="2">Groß (2×2)</option><option value="3">Riesig (3×3)</option><option value="4">Gigantisch (4×4)</option></select>
+            <label>TP <input type="number" id="chp" value="10" min="0"></label>
+            <input type="color" id="cc" value="#7a2e2a" aria-label="Farbe">
+            <button class="btn" id="cadd">Hinzufügen</button>
+          </div>
+        </div>
+        <div class="sec">
+          <h3>Auf der Karte</h3>
+          <div class="toklist" id="tokList"></div>
+          <button class="btn dng" id="clearEnemies">Alle Gegner entfernen</button>
+        </div>
+      </div>
+
+      <div class="pane" id="p-karte" hidden>
+        <div class="sec">
+          <h3>Karte</h3>
+          <div class="row">
+            <label class="btn pri" style="cursor:pointer">Kartenbild hochladen<input type="file" id="mapFile" accept="image/*" hidden></label>
+            <button class="btn" id="mapDel">Karte entfernen</button>
+          </div>
+          <p class="note" id="mapStatus">Ein Bild (JPG oder PNG) von deinem Rechner. Es wird verkleinert und für alle gespeichert.</p>
+        </div>
+        <div class="sec">
+          <h3>Raster</h3>
+          <div class="row">
+            <label>Spalten <input type="number" id="gcols" min="4" max="120"></label>
+            <label id="growsL">Zeilen <input type="number" id="grows" min="4" max="120"></label>
+            <label><input type="checkbox" id="gshow"> Linien zeigen</label>
+          </div>
+          <div class="row" id="goffs">
+            <label>Versatz links <input type="number" id="gox"></label>
+            <label>oben <input type="number" id="goy"></label>
+          </div>
+          <p class="note">So passt du das Raster an die Karte an: Zähle auf der Karte die Kästchen von links nach rechts und trag sie bei „Spalten“ ein. Liegen die Linien leicht daneben, schiebst du sie mit „Versatz“ (in Pixeln) zurecht. Ein Feld sind 1,5 m.</p>
+        </div>
+        <div class="sec">
+          <h3>Nebel des Krieges</h3>
+          <label class="row"><input type="checkbox" id="fogOn"> Nebel ist an</label>
+          <div class="seg" role="group" aria-label="Werkzeug" id="tool">
+            <button data-tool="move" aria-pressed="true">Bewegen</button><button data-tool="reveal" aria-pressed="false">Aufdecken</button><button data-tool="cover" aria-pressed="false">Verdecken</button>
+          </div>
+          <div class="row"><span class="label">Pinsel</span>
+            <div class="seg" role="group" aria-label="Pinselgröße" id="brush" style="flex:1">
+              <button data-b="1" aria-pressed="false">1 Feld</button><button data-b="3" aria-pressed="true">3×3</button><button data-b="5" aria-pressed="false">5×5</button>
+            </div></div>
+          <div class="row"><button class="btn" id="fogAll">Alles verdecken</button><button class="btn" id="fogNone">Alles aufdecken</button></div>
+          <label class="row"><input type="checkbox" id="preview"> Spieleransicht (so sehen es die Spieler)</label>
+          <p class="note">Mit „Aufdecken“ malst du mit gedrückter Maustaste frei, was die Helden sehen. Für dich bleibt der Nebel halb durchsichtig, die Spieler sehen dort nur Schwarz. Zum Verschieben der Karte wieder „Bewegen“ wählen.</p>
+        </div>
+      </div>
+
+      <div class="pane" id="p-szenen" hidden>
+        <div class="sec">
+          <h3>Szenen</h3>
+          <p class="note">Eine Szene ist eine Karte mit ihren Figuren und ihrem Nebel. Du kannst mehrere vorbereiten. Die Spieler sehen immer die Szene mit „Spieler sehen das“.</p>
+          <div class="scenes" id="sceneList"></div>
+          <div class="row"><input type="text" id="newName" placeholder="Name, z. B. Taverne" style="flex:1 1 140px"><button class="btn pri" id="newScene">Neue Szene</button></div>
+        </div>
+        <div class="sec">
+          <h3>Diese Szene</h3>
+          <div class="row"><input type="text" id="rename" style="flex:1 1 140px"><button class="btn" id="renameBtn">Umbenennen</button></div>
+          <div class="row"><button class="btn pri" id="showAll">Spielern zeigen</button><button class="btn dng" id="delScene">Szene löschen</button></div>
+        </div>
+        <div class="sec">
+          <h3>Spieler einladen</h3>
+          <p class="note">Diesen Link schickst du den Spielern, zum Beispiel in die WhatsApp-Gruppe oder in Discord. Er bleibt immer gleich.</p>
+          <input type="text" id="linkOut" readonly style="width:100%">
+          <div class="row"><button class="btn" id="linkBtn2">Link kopieren</button></div>
+        </div>
+        <div class="sec">
+          <h3>Passwort</h3>
+          <p class="note">Mit Passwort sehen nur Spieler, die es kennen, Karte und Figuren. Ohne Passwort reicht der Link. Schick das Passwort am besten getrennt vom Link.</p>
+          <div class="row"><input type="text" id="gmPw" placeholder="leer = kein Passwort" autocomplete="off" style="flex:1 1 140px"><button class="btn" id="gmPwSave">Speichern</button></div>
+          <p class="note" id="gmPwStatus"></p>
+        </div>
+        <div class="sec">
+          <h3>Sichern</h3>
+          <p class="note">Szenen, Karten und Nebel liegen nur in diesem Browser. Mit „Sichern“ lädst du alles als Datei herunter, mit „Laden“ holst du es zurück, auch auf einem anderen Rechner. Mit „Laden“ liest du auch einmalig die Datei Heldenbilder.json ein. Die Bilder liegen dann nur in deinem Browser und gehen erst nach dem Passwort an die Spieler.</p>
+          <div class="row"><button class="btn" id="exportBtn">Sichern</button><label class="btn" style="cursor:pointer">Laden<input type="file" id="importFile" accept=".json,application/json" hidden></label></div>
+          <p class="note" id="imgStatus"></p>
+          <p class="note" id="ioStatus"></p>
+        </div>
+      </div>
+
+      <div class="pane" id="p-hilfe" hidden>
+        <div class="sec" id="helpPlayer">
+          <h3>So spielst du mit</h3>
+          <ul class="help">
+            <li>Wähle oben bei <b>„Ich spiele“</b> deinen Helden. Dann kannst du deine eigene Figur mit der Maus ziehen.</li>
+            <li><b>Karte bewegen:</b> auf eine freie Stelle klicken und ziehen. <b>Zoomen:</b> Mausrad oder die Knöpfe unten rechts.</li>
+            <li><b>Etwas zeigen:</b> Doppelklick auf die Karte setzt einen leuchtenden Punkt, den alle sehen.</li>
+            <li><b>Würfeln:</b> Reiter „Würfel“. Bonus eintragen, bei Bedarf Vorteil oder Nachteil wählen, dann auf den Würfel klicken. Alle sehen dein Ergebnis im Protokoll.</li>
+            <li>Gesprochen wird weiter in Discord. Ein Konto brauchst du nicht.</li>
+          </ul>
+        </div>
+        <div class="sec gm" hidden>
+          <h3>Für dich als Spielleiter</h3>
+          <ul class="help">
+            <li><b>Szenen</b> vorbereiten: Reiter „Szenen“, neue Szene anlegen, im Reiter „Karte &amp; Nebel“ ein Kartenbild hochladen und das Raster einstellen.</li>
+            <li><b>Figuren</b> setzen: Reiter „Figuren“. Helden und die Gegner der beiden Abenteuer sind schon vorbereitet. Gegner sind beim Hinzufügen <b>versteckt</b>, bis du sie zeigst.</li>
+            <li><b>Figur anklicken</b> wählt sie aus. Oben im Reiter „Figuren“ kannst du dann TP ändern, sie zeigen oder verstecken, „am Zug“ markieren oder entfernen.</li>
+            <li><b>Nebel:</b> Reiter „Karte &amp; Nebel“, Nebel einschalten, „Alles verdecken“ und dann mit „Aufdecken“ freimalen.</li>
+            <li>Die Spieler verbinden sich direkt mit deinem Fenster. <b>Lass den Spieltisch also offen</b>, solange gespielt wird. Den Link für die Spieler findest du oben rechts und im Reiter „Szenen“.</li>
+            <li>Alles wird in diesem Browser gespeichert. Nutze immer denselben Browser oder sichere vorher im Reiter „Szenen“.</li>
+            <li>„Verdeckt würfeln“ zeigt den Wurf nur dir.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="peerjs.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const PREFIX="bbbg-spieltisch-";
+
+/* ---------- Daten ---------- */
+const HEROES=[
+ {id:"durgan",n:"Durgan",img:"durgan",c:"#b03a2e",s:1},
+ {id:"aethor",n:"Aethor",img:"aethor",c:"#b8963f",s:1},
+ {id:"pip",n:"Pip",img:"pip",c:"#5a5a64",s:0.8},
+ {id:"vino",n:"Vino",img:"vino",c:"#a86830",s:0.8},
+ {id:"elarion",n:"Elarion",img:"elarion",c:"#4f8f3c",s:1},
+ {id:"baggi",n:"Baggi",img:"baggi",c:"#7d50a0",s:1},
+ {id:"dragooner",n:"Dragooner",img:"dragooner",c:"#4682e6",s:1},
+ {id:"luna",n:"Luna",img:"luna",c:"#96826e",s:2}
+];
+const HMAP=Object.fromEntries(HEROES.map(h=>[h.id,h]));
+const PRE={
+ rasur:[
+  {n:"Glatter",c:"#7d8590",hp:22},{n:"Rasiermesser",c:"#b9c0c9",hp:10,s:0.7},{n:"Haarknäuel",c:"#4a3b2c",hp:33},
+  {n:"Ambrosius",img:"ambrosius",c:"#2a2a2a",hp:85,one:1},{n:"Seelenzopf",c:"#a9864c",hp:35,s:2,one:1},
+  {n:"Hedda",c:"#3c6e47",npc:1,one:1},{n:"Lene",c:"#3c6e47",npc:1,s:0.7,one:1},{n:"Ruprecht",c:"#3c6e47",npc:1,s:0.8,one:1}],
+ drache:[
+  {n:"Söldner",c:"#7a5a2e",hp:11},{n:"Ilse",c:"#8a4a1e",hp:32,one:1},{n:"Verdorrter",c:"#3a3020",hp:8,s:0.7},
+  {n:"Dornenbestie",c:"#2f3a1e",hp:34,s:2},{n:"Rauke",c:"#6a2a1e",hp:45,one:1},{n:"Baron",img:"baron",c:"#3a5a2a",hp:60,one:1},
+  {n:"Sylvaranth",img:"sylvaranth",c:"#2f6b2a",s:4,one:1,npc:1},{n:"Weißer Hirsch",c:"#e8e4d8",s:2,npc:1,one:1},
+  {n:"Marthe",c:"#3c6e47",npc:1,one:1},{n:"Bodo",c:"#3c6e47",npc:1,one:1}]
+};
+const CELL0=70;
+
+/* ---------- Zustand ---------- */
+const params=new URLSearchParams(location.search);
+const joinCode=(params.get("tisch")||"").replace(/[^a-z0-9]/gi,"").slice(0,24);
+const isGM=!joinCode;
+let preview=false;
+let scenes={};          // Spielleiter: alle Szenen. Spieler: nur die gezeigte
+let aktiv=null;         // Szene, die die Spieler sehen
+let cur=null;           // Szene, die der Spielleiter bearbeitet
+let log=[];             // geteiltes Würfelprotokoll
+let localLog=[];        // nur bei mir
+let mapCache={};        // mapId -> dataURL
+let imgCache={};        // Bildname -> dataURL (Heldenbilder, nur nach Passwort an Spieler)
+let sel=null,tool="move",brush=3;
+let me=ls.get("tisch-me","");
+let roster=[];          // wer am Tisch ist
+let optimistic={};
+let view={x:0,y:0,z:1};let fitted=null;
+
+/* ---------- Speicher im Browser (IndexedDB) ---------- */
+const store={db:null,
+  open(){return new Promise(res=>{try{const r=indexedDB.open("spieltisch",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>{this.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
+  get(k){return new Promise(res=>{if(!this.db)return res(undefined);try{const q=this.db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(undefined)}catch(e){res(undefined)}})},
+  set(k,v){return new Promise(res=>{if(!this.db)return res(false);try{const t=this.db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>res(false)}catch(e){res(false)}})},
+  del(k){return new Promise(res=>{if(!this.db)return res(false);try{const t=this.db.transaction("kv","readwrite");t.objectStore("kv").delete(k);t.oncomplete=()=>res(true);t.onerror=()=>res(false)}catch(e){res(false)}})}
+};
+let persistT=null;
+function persist(){if(!isGM)return;clearTimeout(persistT);persistT=setTimeout(()=>{store.set("scenes",scenes);store.set("aktiv",aktiv);store.set("log",log)},300)}
+
+/* ---------- Geometrie ---------- */
+function geo(sc){
+  if(!sc)return null;
+  const hasMap=!!sc.map&&sc.mw>0;
+  const cols=clamp(+sc.cols||24,2,200);
+  const cell=hasMap?sc.mw/cols:CELL0;
+  const W=hasMap?sc.mw:cols*CELL0;
+  const ox=hasMap?(+sc.ox||0):0,oy=hasMap?(+sc.oy||0):0;
+  const H=hasMap?sc.mh:clamp(+sc.rows||16,2,200)*CELL0;
+  const rows=hasMap?Math.max(1,Math.ceil((H-oy)/cell)):clamp(+sc.rows||16,2,200);
+  const colsN=hasMap?Math.max(1,Math.ceil((W-ox)/cell)):cols;
+  return {hasMap,cell,W,H,ox,oy,cols:colsN,rows};
+}
+function fogStr(sc,g){const n=g.cols*g.rows;let f=sc.fog||"";if(f.length!==n)f="1".repeat(n);return f}
+
+/* ---------- Änderungen speichern und an alle senden ---------- */
+function save(sid){const sc=scenes[sid];if(!sc)return;sc.at=Date.now();persist();if(sid===aktiv)broadcastSoon()}
+let saveT={};
+function saveSoon(sid,ms){clearTimeout(saveT[sid]);saveT[sid]=setTimeout(()=>save(sid),ms||300)}
+function setAktiv(sid){aktiv=sid;persist();broadcastSoon();render()}
+function addLog(e){log.unshift(e);log=log.slice(0,40);persist();sendAll({type:"log",log});renderLog()}
+
+/* ---------- Banner und Status ---------- */
+function banner(t,warn,ms){const b=el("div","banner"+(warn?"":" info"),t);$("#banners").appendChild(b);setTimeout(()=>b.remove(),ms||6000);return b}
+function setConn(text,cls){const c=$("#conn");c.textContent=text;c.className="chip"+(cls?" "+cls:"")}
+
+/* ---------- Netz: Spielleiter ist Gastgeber, Spieler verbinden sich ---------- */
+let peer=null;const conns=new Map();   // peerId -> {conn,me,maps:Set}
+let hostConn=null,hostOk=false,retryT=null;
+function tableCode(){let c=ls.get("tisch-code","");if(!c){c=(uid()+uid()).slice(0,10);ls.set("tisch-code",c)}return c}
+function playerLink(){const u=new URL(location.href);u.search="?tisch="+tableCode();u.hash="";return u.toString()}
+function copyLink(){const l=playerLink();const done=()=>banner("Link kopiert. Schick ihn den Spielern.",false,3000);
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(l).then(done,()=>{$("#linkOut").select();banner("Bitte den Link im Reiter „Szenen“ markieren und kopieren.",true)});else{$("#linkOut").select()}}
+
+function startHost(){
+  if(typeof Peer==="undefined"){setConn("Ohne Verbindung","warn");banner("Die Verbindungs-Bibliothek fehlt (peerjs.min.js). Ist die Datei mit hochgeladen?",true,15000);return}
+  setConn("Öffne Tisch …");
+  peer=new Peer(PREFIX+tableCode(),{debug:0});
+  peer.on("open",()=>{setConn("Tisch offen · 0 Spieler","ok");updateRoster()});
+  peer.on("connection",c=>{
+    c.on("open",()=>{conns.set(c.peer,{conn:c,me:"",maps:new Set(),ok:false});setTimeout(()=>{const x=conns.get(c.peer);if(x&&!x.ok){try{c.close()}catch(e){}conns.delete(c.peer)}},20000)});
+    c.on("data",d=>onPlayerData(c.peer,d));
+    c.on("close",()=>{conns.delete(c.peer);updateRoster()});
+    c.on("error",()=>{conns.delete(c.peer);updateRoster()});
+  });
+  peer.on("disconnected",()=>{setConn("Verbindung weg, verbinde neu …","warn");setTimeout(()=>{try{peer.reconnect()}catch(e){}},2000)});
+  peer.on("error",e=>{
+    if(e.type==="unavailable-id"){setConn("Tisch ist schon offen","warn");banner("Der Spieltisch ist schon in einem anderen Fenster oder Tab offen. Schließ das andere Fenster, dann verbindet sich dieses in ein paar Sekunden neu.",true,10000);try{peer.destroy()}catch(x){}setTimeout(startHost,8000)}
+    else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"){setConn("Keine Verbindung zum Netz","warn");setTimeout(()=>{try{peer.destroy()}catch(x){}startHost()},5000)}
+  });
+}
+function updateRoster(){
+  const names=["Spielleiter (du)"].concat([...conns.values()].filter(c=>c.ok).map(c=>HMAP[c.me]?HMAP[c.me].n:"Gast"));
+  roster=names;renderWho();
+  if(peer&&peer.open)setConn("Tisch offen · "+[...conns.values()].filter(c=>c.ok).length+" Spieler","ok");
+  sendAll({type:"who",names:names.map(n=>n.replace(" (du)",""))});
+}
+function sendTo(id,msg){const c=conns.get(id);if(c&&c.conn.open){try{c.conn.send(msg)}catch(e){}}}
+function okIds(){return [...conns.entries()].filter(([,c])=>c.ok).map(([id])=>id)}
+function sendAll(msg){if(!isGM)return;for(const id of okIds())sendTo(id,msg)}
+let bT=null;
+function broadcastSoon(){clearTimeout(bT);bT=setTimeout(()=>{for(const id of okIds())sendState(id)},60)}
+function playerView(sc){
+  if(!sc)return null;
+  const o=JSON.parse(JSON.stringify(sc));o.toks={};
+  for(const [id,t] of Object.entries(sc.toks||{})){if(t.hid)continue;const c=Object.assign({},t);delete c.hp;delete c.hpMax;o.toks[id]=c}
+  if(o.turn&&!o.toks[o.turn])o.turn=null;
+  return o;
+}
+async function sendState(id){
+  const c=conns.get(id);if(!c||!c.ok)return;const sc=scenes[aktiv];
+  if(sc&&sc.map&&!c.maps.has(sc.map)){const d=mapCache[sc.map]||await store.get("map:"+sc.map);if(d){mapCache[sc.map]=d;c.maps.add(sc.map);sendTo(id,{type:"map",id:sc.map,d})}}
+  sendTo(id,{type:"state",sid:aktiv,scene:playerView(sc)});
+}
+function onPlayerData(id,d){
+  if(!d||typeof d!=="object")return;const c=conns.get(id);if(!c)return;
+  if(!c.ok){
+    if(d.type!=="join")return;
+    const pw=ls.get("tisch-pw","");const now=Date.now();fails=fails.filter(t=>now-t<60000);
+    if(pw&&(fails.length>=10||String(d.pw||"")!==pw)){fails.push(now);sendTo(id,{type:"denied",msg:fails.length>10?"busy":"pw"});setTimeout(()=>{try{c.conn.close()}catch(e){}conns.delete(id);updateRoster()},400);return}
+    c.ok=true;c.me=HMAP[d.me]?d.me:"";sendTo(id,{type:"welcome"});if(Object.keys(imgCache).length)sendTo(id,{type:"imgs",imgs:imgCache});sendState(id);sendTo(id,{type:"log",log});updateRoster();return;
+  }
+  if(d.type==="me"){c.me=HMAP[d.me]?d.me:"";updateRoster()}
+  else if(d.type==="mv"){applyMove(d)}
+  else if(d.type==="roll"){addLog({who:String(d.who||"Gast").slice(0,30),txt:String(d.txt||"").slice(0,140),tot:Number(d.tot)||0,t:Date.now()})}
+  else if(d.type==="ping"){const p={type:"ping",x:+d.x||0,y:+d.y||0,who:String(d.who||"").slice(0,30),sid:d.sid};sendAll(p);if(viewSid()===p.sid)showPing(p.x,p.y,p.who)}
+}
+let fails=[];
+function applyMove(m){
+  const sc=scenes[aktiv];if(!sc||m.sid!==aktiv||!sc.toks)return;
+  const t=sc.toks[m.id];if(!t||!t.h)return;
+  const g=geo(sc);const n=Math.max(1,Math.round(t.s||1));
+  t.x=clamp(Math.round(+m.x)||0,0,g.cols-n);t.y=clamp(Math.round(+m.y)||0,0,g.rows-n);
+  save(aktiv);if(viewSid()===aktiv)render();
+}
+
+function startPlayer(){
+  if(typeof Peer==="undefined"){setConn("Ohne Verbindung","warn");banner("Die Verbindungs-Bibliothek fehlt.",true,15000);return}
+  setConn("Verbinde …");
+  peer=new Peer({debug:0});
+  peer.on("open",connectHost);
+  peer.on("disconnected",()=>{setTimeout(()=>{try{peer.reconnect()}catch(e){}},2000)});
+  peer.on("error",e=>{if(e.type==="peer-unavailable"){hostOk=false;setConn("Warte auf Spielleiter …","warn");render();scheduleRetry()}
+    else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"){setConn("Keine Verbindung zum Netz","warn");scheduleRetry()}});
+}
+let needPw=false;
+function scheduleRetry(){clearTimeout(retryT);retryT=setTimeout(()=>{if(!hostOk&&!needPw){if(peer&&peer.disconnected){try{peer.reconnect()}catch(e){}}else connectHost()}},4000)}
+function connectHost(){
+  if(hostConn){try{hostConn.close()}catch(e){}}
+  const c=peer.connect(PREFIX+joinCode,{reliable:true});hostConn=c;
+  c.on("open",()=>{setConn("Melde an …");c.send({type:"join",pw:ls.get("tisch-pw-"+joinCode,""),me})});
+  c.on("data",onHostData);
+  c.on("close",()=>{if(hostConn!==c)return;hostOk=false;roster=[];renderWho();if(needPw){setConn("Passwort nötig","warn");return}setConn("Warte auf Spielleiter …","warn");render();scheduleRetry()});
+  c.on("error",()=>{});
+}
+function sendHost(msg){if(hostConn&&hostOk){try{hostConn.send(msg);return true}catch(e){}}return false}
+function onHostData(d){
+  if(!d||typeof d!=="object")return;
+  if(d.type==="welcome"){hostOk=true;needPw=false;$("#pwBox").hidden=true;setConn("Verbunden","ok");render();return}
+  if(d.type==="denied"){hostOk=false;needPw=true;const had=ls.get("tisch-pw-"+joinCode,"");ls.set("tisch-pw-"+joinCode,"");
+    $("#pwBox").hidden=false;$("#pwErr").textContent=d.msg==="busy"?"Zu viele Versuche. Warte eine Minute.":(had?"Das Passwort stimmt nicht.":"");setTimeout(()=>$("#pwIn").focus(),50);return}
+  if(!hostOk)return;
+  if(d.type==="imgs"&&d.imgs&&typeof d.imgs==="object"){for(const [k,v] of Object.entries(d.imgs)){if(/^[a-z]{2,20}$/.test(k)&&typeof v==="string"&&v.startsWith("data:image/"))imgCache[k]=v}render()}
+  else if(d.type==="map"&&typeof d.d==="string"&&d.d.startsWith("data:image/")){mapCache[d.id]=d.d;render()}
+  else if(d.type==="state"){
+    const sid=d.sid||null;if(sid!==aktiv)fitted=null;aktiv=sid;scenes={};if(sid&&d.scene)scenes[sid]=d.scene;
+    for(const id in optimistic){const t=scenes[aktiv]&&scenes[aktiv].toks[id];if(!t||(t.x===optimistic[id].x&&t.y===optimistic[id].y))delete optimistic[id]}
+    if(!(drag&&drag.kind==="tok"))render();
+  }
+  else if(d.type==="log"&&Array.isArray(d.log)){log=d.log;localLog=localLog.filter(x=>!log.some(y=>y.who===x.who&&y.txt===x.txt&&y.tot===x.tot));renderLog()}
+  else if(d.type==="who"&&Array.isArray(d.names)){roster=d.names.map(String);renderWho()}
+  else if(d.type==="ping"&&d.sid===aktiv){showPing(+d.x||0,+d.y||0,String(d.who||""))}
+}
+
+/* ---------- Karte hochladen ---------- */
+function prepImage(file){
+  return new Promise((res,rej)=>{
+    const img=new Image();const u=URL.createObjectURL(file);
+    img.onload=()=>{const max=2400;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(u);
+      let q=.85,d=cv.toDataURL("image/jpeg",q);while(d.length>2500000&&q>.4){q-=.1;d=cv.toDataURL("image/jpeg",q)}
+      res({d,w,h})};
+    img.onerror=()=>rej(new Error("Bild nicht lesbar"));img.src=u;
+  });
+}
+async function uploadMap(file){
+  const sc=scenes[cur];if(!sc)return;
+  const st=$("#mapStatus");st.textContent="Bild wird vorbereitet …";
+  let p;try{p=await prepImage(file)}catch(e){st.textContent="Das Bild konnte nicht gelesen werden.";return}
+  const id="k"+uid()+uid();
+  const ok=await store.set("map:"+id,p.d);
+  mapCache[id]=p.d;
+  const old=sc.map;sc.map=id;sc.mw=p.w;sc.mh=p.h;sc.ox=0;sc.oy=0;if(!sc.cols||sc.cols<4)sc.cols=Math.round(p.w/70);sc.fog="";
+  if(old)dropMapIfUnused(old);
+  st.textContent=ok?"Karte gespeichert. Jetzt das Raster einstellen.":"Karte geladen, konnte aber nicht dauerhaft gespeichert werden (Browser-Speicher voll?).";
+  fitted=null;save(cur);render();fillMapForm();
+}
+function addImgs(o){let n=0;if(!o||typeof o!=="object")return 0;for(const [k,v] of Object.entries(o)){if(/^[a-z]{2,20}$/.test(k)&&typeof v==="string"&&v.startsWith("data:image/")){imgCache[k]=v;n++}}
+  store.set("imgs",imgCache);sendAll({type:"imgs",imgs:imgCache});imgStatus();render();return n}
+function imgStatus(){const e=$("#imgStatus");if(!e)return;const n=Object.keys(imgCache).length;e.textContent=n?"Heldenbilder: "+n+" geladen.":"Heldenbilder fehlen noch. Lade einmal die Datei Heldenbilder.json mit „Laden“."}
+function dropMapIfUnused(id){if(!Object.values(scenes).some(s=>s.map===id)){store.del("map:"+id);delete mapCache[id]}}
+async function ensureMap(id){if(mapCache[id]||!isGM)return;const d=await store.get("map:"+id);if(d){mapCache[id]=d;render()}}
+
+/* ---------- Sichern und Laden ---------- */
+async function exportAll(){
+  const maps={};for(const s of Object.values(scenes)){if(s.map&&!maps[s.map]){maps[s.map]=mapCache[s.map]||await store.get("map:"+s.map)||null}}
+  const blob=new Blob([JSON.stringify({app:"spieltisch",v:1,scenes,aktiv,maps,imgs:imgCache})],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  const d=new Date();a.download="Spieltisch-Sicherung-"+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+".json";
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  $("#ioStatus").textContent="Sicherung heruntergeladen.";
+}
+async function importAll(file){
+  const st=$("#ioStatus");st.textContent="Lade …";
+  try{
+    const j=JSON.parse(await file.text());
+    if(j&&j.app==="spieltisch-bilder"){const n=addImgs(j.imgs);st.textContent=n+" Bilder geladen. Sie sind jetzt in diesem Browser gespeichert.";return}
+    if(!j||j.app!=="spieltisch"||typeof j.scenes!=="object")throw new Error("x");
+    if(j.imgs)addImgs(j.imgs);
+    for(const [id,d] of Object.entries(j.maps||{})){if(typeof d==="string"&&d.startsWith("data:image/")){await store.set("map:"+id,d);mapCache[id]=d}}
+    scenes=j.scenes;aktiv=j.aktiv&&scenes[j.aktiv]?j.aktiv:(Object.keys(scenes)[0]||null);cur=aktiv;ls.set("tisch-cur",cur);
+    for(const c of conns.values())c.maps.clear();
+    persist();broadcastSoon();fitted=null;sel=null;render();fillMapForm();
+    st.textContent="Geladen: "+Object.keys(scenes).length+" Szenen.";
+  }catch(e){st.textContent="Diese Datei ist keine Spieltisch-Sicherung."}
+}
+
+/* ---------- Ansicht ---------- */
+const stage=$("#stage"),world=$("#world");
+function applyView(){world.style.transform="translate("+view.x+"px,"+view.y+"px) scale("+view.z+")"}
+function fit(){
+  const sc=scenes[viewSid()];const g=geo(sc);if(!g)return;
+  const r=stage.getBoundingClientRect();if(!r.width)return;const z=Math.min(r.width/g.W,r.height/g.H)*.96;
+  view.z=clamp(z,.05,4);view.x=(r.width-g.W*view.z)/2;view.y=(r.height-g.H*view.z)/2;applyView();
+}
+function zoomAt(f,cx,cy){const nz=clamp(view.z*f,.05,5);const k=nz/view.z;view.x=cx-(cx-view.x)*k;view.y=cy-(cy-view.y)*k;view.z=nz;applyView()}
+function toWorld(e){const r=stage.getBoundingClientRect();return{x:(e.clientX-r.left-view.x)/view.z,y:(e.clientY-r.top-view.y)/view.z}}
+function viewSid(){return isGM?cur:aktiv}
+function asPlayer(){return !isGM||preview}
+
+/* ---------- Zeichnen ---------- */
+function render(){
+  const sid=viewSid();const sc=scenes[sid];
+  $("#scn").textContent=sc?sc.name:"–";
+  const empty=$("#empty");
+  if(!sc){
+    empty.hidden=false;
+    empty.textContent=isGM?"Noch keine Szene. Leg im Reiter „Szenen“ eine an.":(hostOk?"Der Spielleiter hat noch keine Szene freigegeben.":"Warte auf den Spielleiter … Sobald er den Spieltisch geöffnet hat, verbindet sich diese Seite von selbst.");
+    world.style.display="none";renderSide();return;
+  }
+  empty.hidden=true;world.style.display="";
+  const g=geo(sc);
+  world.style.width=g.W+"px";world.style.height=g.H+"px";
+  const img=$("#mapimg"),blank=$("#blank");
+  if(g.hasMap){
+    const src=mapCache[sc.map];
+    if(src){if(img.getAttribute("src")!==src)img.src=src;img.hidden=false}else{img.hidden=true;ensureMap(sc.map)}
+    img.style.width=g.W+"px";img.style.height=g.H+"px";blank.hidden=!!src;
+    blank.style.width=g.W+"px";blank.style.height=g.H+"px";
+    if(!src){empty.hidden=false;empty.textContent="Karte wird geladen …"}
+  }else{img.hidden=true;img.removeAttribute("src");blank.hidden=false;blank.style.width=g.W+"px";blank.style.height=g.H+"px"}
+  drawGrid(sc,g);drawFog(sc,g);drawToks(sc,g);
+  if(fitted!==sid){fitted=sid;fit()}
+  renderSide();
+}
+function drawGrid(sc,g){
+  const cv=$("#grid");cv.width=g.W;cv.height=g.H;const c=cv.getContext("2d");c.clearRect(0,0,g.W,g.H);
+  if(!(sc.grid??true))return;
+  c.strokeStyle=g.hasMap?"rgba(0,0,0,.35)":"rgba(60,50,30,.35)";c.lineWidth=Math.max(1,g.cell/50);c.beginPath();
+  for(let i=0;i<=g.cols;i++){const x=g.ox+i*g.cell;if(x<0||x>g.W)continue;c.moveTo(x,0);c.lineTo(x,g.H)}
+  for(let j=0;j<=g.rows;j++){const y=g.oy+j*g.cell;if(y<0||y>g.H)continue;c.moveTo(0,y);c.lineTo(g.W,y)}
+  c.stroke();
+}
+function drawFog(sc,g){
+  const cv=$("#fog");cv.width=g.W;cv.height=g.H;const c=cv.getContext("2d");c.clearRect(0,0,g.W,g.H);
+  if(!sc.fogOn)return;
+  const f=fogStr(sc,g);const pl=asPlayer();
+  c.fillStyle=pl?"#050605":"rgba(10,12,20,.55)";
+  if(pl){c.fillRect(0,0,g.W,Math.max(0,g.oy));c.fillRect(0,0,Math.max(0,g.ox),g.H)}
+  for(let j=0;j<g.rows;j++)for(let i=0;i<g.cols;i++){if(f[j*g.cols+i]==="1")c.fillRect(Math.floor(g.ox+i*g.cell),Math.floor(g.oy+j*g.cell),Math.ceil(g.cell)+1,Math.ceil(g.cell)+1)}
+}
+function underFog(sc,g,t){const f=fogStr(sc,g);const n=Math.max(1,Math.round(t.s||1));
+  for(let j=t.y;j<t.y+n;j++)for(let i=t.x;i<t.x+n;i++){if(i<0||j<0||i>=g.cols||j>=g.rows)continue;if(f[j*g.cols+i]!=="1")return false}return true}
+function canMove(id){if(isGM)return true;if(!hostOk)return false;return id===me||(me==="dragooner"&&id==="luna")}
+function drawToks(sc,g){
+  const box=$("#toks");box.textContent="";
+  const pl=asPlayer();
+  const list=Object.entries(sc.toks||{}).sort((a,b)=>(b[1].s||1)-(a[1].s||1));
+  for(const [id,t] of list){
+    if(t.hid&&pl)continue;
+    if(pl&&sc.fogOn&&underFog(sc,g,t))continue;
+    const o=optimistic[id];let x=t.x,y=t.y;if(o&&o.until>Date.now()){x=o.x;y=o.y}
+    const s=t.s||1;const slot=Math.max(1,Math.round(s));const px=s*g.cell;
+    const d=el("div","tok");d.dataset.id=id;
+    if(HMAP[t.h])d.classList.add("hero");
+    if(t.hid)d.classList.add("hid");
+    if(sc.turn===id)d.classList.add("turn");
+    if(isGM&&sel===id)d.classList.add("sel");
+    if(canMove(id))d.classList.add("mine");
+    if(t.hpMax&&t.hp<=0)d.classList.add("down");
+    d.style.width=px+"px";d.style.height=px+"px";
+    d.style.left=(g.ox+x*g.cell+(slot*g.cell-px)/2)+"px";d.style.top=(g.oy+y*g.cell+(slot*g.cell-px)/2)+"px";
+    const f=el("div","face");
+    const key=t.h&&HMAP[t.h]?HMAP[t.h].img:imgKey(t.img);const src=key&&imgCache[key];
+    const col=t.h&&HMAP[t.h]?HMAP[t.h].c:t.c;
+    if(src){const im=el("img");im.src=src;im.alt="";f.appendChild(im)}
+    else{f.style.background=/^#[0-9a-f]{6}$/i.test(col||"")?col:"#7a2e2a";if(t.h)f.style.border="3px solid rgba(255,255,255,.7)";f.style.fontSize=Math.max(12,px*.32)+"px";f.textContent=initials(t.n||"?");if(t.npc)f.style.borderColor="#3c6e47"}
+    d.appendChild(f);
+    const nm=el("div","nm",String(t.n||""));nm.style.fontSize=Math.max(11,Math.min(22,g.cell*.2))+"px";d.appendChild(nm);
+    if(isGM&&t.hpMax){const b=el("div","hpb");const i=el("i");const r=clamp(t.hp/t.hpMax,0,1);i.style.width=(r*100)+"%";if(r<=.34)i.className="low";b.appendChild(i);d.appendChild(b)}
+    box.appendChild(d);
+  }
+}
+function imgKey(v){if(typeof v!=="string")return null;const k=v.replace(/^t\//,"").replace(/\.png$/,"");return /^[a-z]{2,20}$/.test(k)?k:null}
+function initials(n){const m=String(n).match(/^(\S+?)(?:\s+(\d+))?$/);if(m&&m[2])return m[1].slice(0,2)+m[2];return String(n).split(/\s+/).map(w=>w[0]).join("").slice(0,3)}
+
+/* ---------- Seitenleiste ---------- */
+function renderWho(){
+  const w=$("#who");w.textContent="";if(!roster.length)return;
+  w.appendChild(el("span","label","Am Tisch"));roster.forEach(n=>w.appendChild(el("span",null,n)));
+}
+function renderSide(){
+  $$(".gm").forEach(x=>x.hidden=!isGM);
+  $("#meBox").hidden=isGM;$("#linkBtn").hidden=!isGM;
+  renderLog();
+  if(!isGM)return;
+  const sc=scenes[cur];
+  const hb=$("#heroBtns");hb.textContent="";
+  HEROES.forEach(h=>{const on=sc&&sc.toks&&sc.toks[h.id];const b=el("button","btn sm"+(on?" on":""),h.n);b.onclick=()=>toggleHero(h.id);hb.appendChild(b)});
+  const tl=$("#tokList");tl.textContent="";
+  if(sc){const ent=Object.entries(sc.toks||{});if(!ent.length)tl.appendChild(el("p","note","Noch keine Figuren."));
+    ent.forEach(([id,t])=>{const b=el("button",sel===id?"sel":"");b.appendChild(el("span",null,t.n+(t.hid?" (versteckt)":"")));if(t.hpMax)b.appendChild(el("b",null,t.hp+"/"+t.hpMax));b.onclick=()=>{sel=id;render()};tl.appendChild(b)})}
+  renderSel();
+  const sl=$("#sceneList");sl.textContent="";
+  Object.entries(scenes).sort((a,b)=>(a[1].made||0)-(b[1].made||0)).forEach(([sid,s])=>{
+    const r=el("div","scene"+(sid===cur?" cur":""));r.appendChild(el("span","t",s.name));
+    if(sid===aktiv)r.appendChild(el("span","badge","Spieler sehen das"));
+    if(sid!==cur){const b=el("button","btn sm","Öffnen");b.onclick=()=>{cur=sid;ls.set("tisch-cur",cur);sel=null;fitted=null;render();fillMapForm()};r.appendChild(b)}
+    sl.appendChild(r)});
+  if(!Object.keys(scenes).length)sl.appendChild(el("p","note","Noch keine Szene."));
+  $("#rename").value=sc?sc.name:"";
+  $("#showAll").disabled=!sc||aktiv===cur;$("#showAll").textContent=aktiv===cur?"Spieler sehen diese Szene":"Spielern zeigen";
+  if(aktiv&&aktiv!==cur&&scenes[aktiv])$("#scn").textContent=(sc?sc.name:"–")+"  (Spieler sehen: "+scenes[aktiv].name+")";
+  $("#linkOut").value=playerLink();
+}
+function renderSel(){
+  const box=$("#selSec");const sc=scenes[cur];const t=sc&&sel&&sc.toks&&sc.toks[sel];
+  if(!t){box.hidden=true;box.textContent="";return}
+  box.hidden=false;box.textContent="";
+  const w=el("div","selbox");w.appendChild(el("h3",null,t.n));
+  if(t.hpMax){
+    const r=el("div","row");r.appendChild(el("span","label","TP"));
+    const v=el("b",null,t.hp+" / "+t.hpMax);
+    const inp=el("input");inp.type="number";inp.value=5;inp.min=0;inp.setAttribute("aria-label","Betrag");
+    const minus=el("button","btn sm dng","Schaden");minus.onclick=()=>{t.hp=Math.max(0,t.hp-(+inp.value||0));save(cur);render()};
+    const plus=el("button","btn sm","Heilen");plus.onclick=()=>{t.hp=Math.min(t.hpMax,t.hp+(+inp.value||0));save(cur);render()};
+    r.append(v,inp,minus,plus);w.appendChild(r);
+  }
+  const r2=el("div","row");
+  const hid=el("button","btn sm"+(t.hid?" on":""),t.hid?"Versteckt · zeigen":"Verstecken");hid.onclick=()=>{t.hid=!t.hid;save(cur);render()};
+  const turn=el("button","btn sm"+(sc.turn===sel?" on":""),sc.turn===sel?"Am Zug ✓":"Am Zug");turn.onclick=()=>{sc.turn=sc.turn===sel?null:sel;save(cur);render()};
+  const size=el("select");[["0.7","Klein"],["0.8","Halbling"],["1","Mittel"],["2","Groß 2×2"],["3","Riesig 3×3"],["4","Gigantisch 4×4"]].forEach(([v,l])=>{const o=el("option",null,l);o.value=v;if(String(t.s||1)===v)o.selected=true;size.appendChild(o)});
+  size.onchange=()=>{t.s=+size.value;save(cur);render()};size.setAttribute("aria-label","Größe");
+  const rm=el("button","btn sm dng","Entfernen");rm.onclick=()=>{delete sc.toks[sel];if(sc.turn===sel)sc.turn=null;sel=null;save(cur);render()};
+  r2.append(hid,turn,size,rm);w.appendChild(r2);
+  if(!t.h){const r3=el("div","row");const dup=el("button","btn sm","Noch einen");dup.onclick=()=>{addTok({n:t.n.replace(/\s+\d+$/,""),c:t.c,img:t.img,hp:t.hpMax,s:t.s,npc:t.npc})};r3.appendChild(dup);w.appendChild(r3)}
+  w.appendChild(el("p","note","Figur auf der Karte ziehen, um sie zu bewegen."));
+  box.appendChild(w);
+}
+function renderLog(){
+  const box=$("#log");box.textContent="";
+  const all=log.map(x=>Object.assign({},x)).concat(localLog.map(x=>Object.assign({loc:1},x))).sort((a,b)=>b.t-a.t).slice(0,40);
+  if(!all.length){box.appendChild(el("p","note","Noch nichts gewürfelt."));return}
+  all.forEach(e=>{const d=el("div",e.loc?"loc":"");const l=el("span",null,(e.who||"?")+": "+e.txt+(e.loc?(e.sec?" (verdeckt)":" (nur bei dir)"):""));d.append(l,el("b",null,String(e.tot)));box.appendChild(d)});
+}
+
+/* ---------- Figuren setzen ---------- */
+function centerCell(){const sc=scenes[cur];const g=geo(sc);const r=stage.getBoundingClientRect();
+  const wx=(r.width/2-view.x)/view.z,wy=(r.height/2-view.y)/view.z;
+  return{x:clamp(Math.floor((wx-g.ox)/g.cell),0,g.cols-1),y:clamp(Math.floor((wy-g.oy)/g.cell),0,g.rows-1)}}
+function freeSpot(sc,cx,cy,size){const occ=new Set();const n=Math.max(1,Math.round(size||1));
+  Object.values(sc.toks||{}).forEach(t=>{const m=Math.max(1,Math.round(t.s||1));for(let j=0;j<m;j++)for(let i=0;i<m;i++)occ.add((t.x+i)+","+(t.y+j))});
+  const g=geo(sc);const fits=(x,y)=>{if(x<0||y<0||x+n>g.cols||y+n>g.rows)return false;for(let j=0;j<n;j++)for(let i=0;i<n;i++)if(occ.has((x+i)+","+(y+j)))return false;return true};
+  for(let r=0;r<12;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(fits(cx+dx,cy+dy))return{x:cx+dx,y:cy+dy}}
+  return{x:cx,y:cy}}
+function toggleHero(id){
+  const sc=scenes[cur];if(!sc)return;sc.toks=sc.toks||{};
+  if(sc.toks[id]){delete sc.toks[id];if(sel===id)sel=null}
+  else{const h=HMAP[id];const c=centerCell();const p=freeSpot(sc,c.x,c.y,h.s);sc.toks[id]={h:id,n:h.n,s:h.s,x:p.x,y:p.y}}
+  save(cur);render();
+}
+function addTok(p){
+  const sc=scenes[cur];if(!sc)return;sc.toks=sc.toks||{};
+  let name=p.n;
+  if(!p.one){const used=Object.values(sc.toks).filter(t=>t.n.replace(/\s+\d+$/,"")===p.n).length;name=p.n+" "+(used+1)}
+  else if(Object.values(sc.toks).some(t=>t.n===p.n)){banner(p.n+" steht schon auf der Karte.");return}
+  const c=centerCell();const q=freeSpot(sc,c.x,c.y,p.s);const id="m"+uid();
+  sc.toks[id]={n:name,c:p.c||null,img:p.img||null,s:p.s||1,x:q.x,y:q.y,hid:true,npc:!!p.npc};
+  if(p.hp){sc.toks[id].hp=p.hp;sc.toks[id].hpMax=p.hp}
+  sel=id;save(cur);render();
+}
+["rasur","drache"].forEach(k=>{const box=$("#pre-"+k);PRE[k].forEach(p=>{const b=el("button","btn sm",p.n);b.title=p.npc?"Figur der Geschichte":"Gegner";b.onclick=()=>addTok(p);box.appendChild(b)})});
+$("#cadd").onclick=()=>{const n=$("#cn").value.trim();if(!n){$("#cn").focus();return}addTok({n,c:$("#cc").value,s:+$("#cs").value,hp:+$("#chp").value||0,one:0});$("#cn").value=""};
+$("#clearEnemies").onclick=()=>{const sc=scenes[cur];if(!sc)return;Object.keys(sc.toks||{}).forEach(id=>{if(!sc.toks[id].h)delete sc.toks[id]});sel=null;save(cur);render()};
+
+/* ---------- Karte, Raster, Nebel ---------- */
+function fillMapForm(){
+  const sc=scenes[cur];if(!sc)return;const g=geo(sc);
+  $("#gcols").value=sc.cols||24;$("#grows").value=sc.rows||16;$("#growsL").hidden=g.hasMap;$("#goffs").hidden=!g.hasMap;
+  $("#gox").value=sc.ox||0;$("#goy").value=sc.oy||0;$("#gshow").checked=sc.grid??true;$("#fogOn").checked=!!sc.fogOn;
+}
+function formChanged(){
+  const sc=scenes[cur];if(!sc)return;
+  const oldG=geo(sc);
+  sc.cols=clamp(+$("#gcols").value||24,2,200);sc.rows=clamp(+$("#grows").value||16,2,200);
+  sc.ox=+$("#gox").value||0;sc.oy=+$("#goy").value||0;sc.grid=$("#gshow").checked;
+  const g=geo(sc);if(g.cols!==oldG.cols||g.rows!==oldG.rows)sc.fog="";
+  render();saveSoon(cur,300);
+}
+["#gcols","#grows","#gox","#goy","#gshow"].forEach(s=>$(s).addEventListener("input",formChanged));
+$("#fogOn").onchange=()=>{const sc=scenes[cur];if(!sc)return;sc.fogOn=$("#fogOn").checked;if(sc.fogOn&&!sc.fog){const g=geo(sc);sc.fog="1".repeat(g.cols*g.rows)}save(cur);render()};
+$("#fogAll").onclick=()=>{const sc=scenes[cur];if(!sc)return;const g=geo(sc);sc.fog="1".repeat(g.cols*g.rows);sc.fogOn=true;$("#fogOn").checked=true;save(cur);render()};
+$("#fogNone").onclick=()=>{const sc=scenes[cur];if(!sc)return;const g=geo(sc);sc.fog="0".repeat(g.cols*g.rows);save(cur);render()};
+$("#preview").onchange=()=>{preview=$("#preview").checked;render()};
+$("#mapFile").onchange=e=>{const f=e.target.files[0];if(f)uploadMap(f);e.target.value=""};
+$("#mapDel").onclick=()=>{const sc=scenes[cur];if(!sc||!sc.map)return;const old=sc.map;sc.map=null;sc.mw=0;sc.mh=0;sc.fog="";dropMapIfUnused(old);fitted=null;save(cur);render();fillMapForm()};
+function segSel(id,attr,cb){$$("#"+id+" button").forEach(b=>b.onclick=()=>{$$("#"+id+" button").forEach(x=>x.setAttribute("aria-pressed",x===b));cb(b.dataset[attr])})}
+segSel("tool","tool",v=>{tool=v;stage.classList.toggle("paint",v!=="move");if(v!=="move"){const sc=scenes[cur];if(sc&&!sc.fogOn){sc.fogOn=true;$("#fogOn").checked=true;const g=geo(sc);if(!sc.fog)sc.fog="1".repeat(g.cols*g.rows);save(cur);render()}}});
+segSel("brush","b",v=>{brush=+v});
+let paintBuf=null;
+function paintAt(w){
+  const sc=scenes[cur];const g=geo(sc);if(!paintBuf)paintBuf=fogStr(sc,g).split("");
+  const ci=Math.floor((w.x-g.ox)/g.cell),cj=Math.floor((w.y-g.oy)/g.cell);const r=Math.floor(brush/2);
+  const v=tool==="reveal"?"0":"1";
+  for(let j=cj-r;j<=cj+r;j++)for(let i=ci-r;i<=ci+r;i++){if(i>=0&&j>=0&&i<g.cols&&j<g.rows)paintBuf[j*g.cols+i]=v}
+  sc.fog=paintBuf.join("");drawFog(sc,g);
+}
+
+/* ---------- Szenen ---------- */
+function newScene(name){
+  const sid="s"+uid();
+  scenes[sid]={name:name||"Neue Szene",map:null,mw:0,mh:0,cols:24,rows:16,ox:0,oy:0,grid:true,fogOn:false,fog:"",toks:{},turn:null,made:Date.now()};
+  cur=sid;ls.set("tisch-cur",cur);save(sid);if(!aktiv)setAktiv(sid);fitted=null;render();fillMapForm();
+}
+$("#newScene").onclick=()=>{newScene($("#newName").value.trim()||"Neue Szene");$("#newName").value=""};
+$("#renameBtn").onclick=()=>{const sc=scenes[cur];const v=$("#rename").value.trim();if(sc&&v){sc.name=v;save(cur);render()}};
+$("#showAll").onclick=()=>{if(cur)setAktiv(cur)};
+let delArm=0;
+$("#delScene").onclick=()=>{
+  if(!cur)return;
+  if(Date.now()-delArm>4000){delArm=Date.now();$("#delScene").textContent="Wirklich löschen?";setTimeout(()=>$("#delScene").textContent="Szene löschen",4000);return}
+  const sid=cur;const sc=scenes[sid];delete scenes[sid];if(sc&&sc.map)dropMapIfUnused(sc.map);
+  cur=Object.keys(scenes)[0]||null;ls.set("tisch-cur",cur);
+  if(aktiv===sid)setAktiv(cur);persist();fitted=null;$("#delScene").textContent="Szene löschen";render();fillMapForm();
+};
+$("#exportBtn").onclick=exportAll;
+$("#importFile").onchange=e=>{const f=e.target.files[0];if(f)importAll(f);e.target.value=""};
+$("#pwForm").onsubmit=e=>{e.preventDefault();const v=$("#pwIn").value;if(!v)return;ls.set("tisch-pw-"+joinCode,v);$("#pwErr").textContent="Prüfe …";needPw=false;connectHost()};
+$("#gmPw").value=ls.get("tisch-pw","");
+$("#gmPwSave").onclick=()=>{const v=$("#gmPw").value.trim();ls.set("tisch-pw",v);$("#gmPwStatus").textContent=v?"Passwort gespeichert. Neue Spieler müssen es eingeben, wer schon drin ist, bleibt drin.":"Kein Passwort: Der Link reicht zum Beitreten."};
+$("#linkBtn").onclick=copyLink;$("#linkBtn2").onclick=copyLink;
+
+/* ---------- Würfel ---------- */
+let mode=0;
+segSel("mode","m",v=>{mode=+v});
+function rnd(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return 1+(a[0]%n)}
+[20,4,6,8,10,12,100].forEach(s=>{const b=el("button","die"+(s===20?" d20":""),"W"+s);b.onclick=()=>roll(s);$("#dice").appendChild(b)});
+function myName(){if(isGM)return "Spielleiter";return HMAP[me]?HMAP[me].n:"Gast"}
+function roll(s){
+  const n=clamp(+$("#dn").value||1,1,20),bon=+$("#db").value||0;let tot,txt,cls="";
+  if(s===20&&n===1){
+    const a=rnd(20),b=rnd(20);let r=a,info=String(a);
+    if(mode===1){r=Math.max(a,b);info="Vorteil "+a+"/"+b}else if(mode===-1){r=Math.min(a,b);info="Nachteil "+a+"/"+b}
+    tot=r+bon;txt="W20"+(bon?(bon>0?"+":"")+bon:"")+" ("+info+")";if(r===20)cls="crit";if(r===1)cls="fum";
+    if(r===20)txt+=" · natürliche 20!";if(r===1)txt+=" · natürliche 1";
+  }else{
+    const rs=[];for(let i=0;i<n;i++)rs.push(rnd(s));tot=rs.reduce((x,y)=>x+y,0)+bon;
+    txt=n+"W"+s+(bon?(bon>0?"+":"")+bon:"")+" ["+rs.join(", ")+"]";
+  }
+  const t=$("#tot");t.textContent=tot;t.className="tot"+(cls?" "+cls:"");$("#det").textContent=txt;
+  const e={who:myName(),txt,tot,t:Date.now()};
+  if(isGM){if($("#secret").checked){e.sec=1;localLog.unshift(e);renderLog()}else addLog(e);return}
+  if(!sendHost({type:"roll",who:e.who,txt,tot})){localLog.unshift(e);renderLog();banner("Nicht mit dem Spielleiter verbunden. Sag dein Ergebnis in Discord an.",true)}
+}
+
+/* ---------- Hinweis-Punkt ---------- */
+function showPing(x,y,who){
+  const p=el("div","ping");p.style.left=x+"px";p.style.top=y+"px";
+  if(who){p.appendChild(el("b",null,who))}
+  $("#pings").appendChild(p);setTimeout(()=>p.remove(),1900);
+}
+
+/* ---------- Maus und Finger auf der Karte ---------- */
+let drag=null;const pts=new Map();let pinch=null;
+stage.addEventListener("pointerdown",e=>{
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:view.z};drag=null;return}
+  const sc=scenes[viewSid()];if(!sc)return;
+  const tk=e.target.closest(".tok");
+  if(tk&&tool==="move"){
+    const id=tk.dataset.id;
+    if(isGM){sel=id;renderSide();$$(".tok").forEach(x=>x.classList.toggle("sel",x.dataset.id===id))}
+    if(canMove(id)){const w=toWorld(e);drag={kind:"tok",id,el:tk,dx:w.x-parseFloat(tk.style.left),dy:w.y-parseFloat(tk.style.top),moved:false};tk.classList.add("drag");stage.setPointerCapture(e.pointerId);return}
+  }
+  if(isGM&&tool!=="move"){drag={kind:"paint"};paintBuf=null;paintAt(toWorld(e));stage.setPointerCapture(e.pointerId);return}
+  drag={kind:"pan",sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener("pointermove",e=>{
+  if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const r=stage.getBoundingClientRect();zoomAt((pinch.z*d/pinch.d)/view.z,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);return}
+  if(!drag)return;
+  if(drag.kind==="pan"){view.x=drag.vx+e.clientX-drag.sx;view.y=drag.vy+e.clientY-drag.sy;applyView()}
+  else if(drag.kind==="tok"){const w=toWorld(e);drag.el.style.left=(w.x-drag.dx)+"px";drag.el.style.top=(w.y-drag.dy)+"px";drag.moved=true}
+  else if(drag.kind==="paint"){paintAt(toWorld(e))}
+});
+function endPointer(e){
+  pts.delete(e.pointerId);if(pts.size<2)pinch=null;
+  if(!drag)return;const d=drag;drag=null;
+  if(d.kind==="tok"){
+    d.el.classList.remove("drag");
+    const sid=viewSid();const sc=scenes[sid];const g=geo(sc);const t=sc&&sc.toks[d.id];
+    if(!d.moved||!t){render();return}
+    const s=t.s||1;const slot=Math.max(1,Math.round(s));const px=s*g.cell;
+    const left=parseFloat(d.el.style.left)-(slot*g.cell-px)/2,top=parseFloat(d.el.style.top)-(slot*g.cell-px)/2;
+    const x=clamp(Math.round((left-g.ox)/g.cell),0,g.cols-slot),y=clamp(Math.round((top-g.oy)/g.cell),0,g.rows-slot);
+    if(isGM){t.x=x;t.y=y;save(sid);render()}
+    else{optimistic[d.id]={x,y,until:Date.now()+4000};if(!sendHost({type:"mv",id:d.id,x,y,sid})){delete optimistic[d.id];banner("Nicht mit dem Spielleiter verbunden.",true)}render()}
+  }
+  if(d.kind==="paint"){paintBuf=null;save(cur)}
+}
+stage.addEventListener("pointerup",endPointer);stage.addEventListener("pointercancel",endPointer);
+stage.addEventListener("wheel",e=>{e.preventDefault();const r=stage.getBoundingClientRect();zoomAt(e.deltaY<0?1.15:1/1.15,e.clientX-r.left,e.clientY-r.top)},{passive:false});
+stage.addEventListener("dblclick",e=>{
+  const sid=viewSid();if(!scenes[sid])return;const w=toWorld(e);const x=Math.round(w.x),y=Math.round(w.y);showPing(x,y,myName());
+  if(isGM){if(sid===aktiv)sendAll({type:"ping",x,y,who:myName(),sid})}else sendHost({type:"ping",x,y,who:myName(),sid});
+});
+$("#zin").onclick=()=>{const r=stage.getBoundingClientRect();zoomAt(1.25,r.width/2,r.height/2)};
+$("#zout").onclick=()=>{const r=stage.getBoundingClientRect();zoomAt(1/1.25,r.width/2,r.height/2)};
+$("#zfit").onclick=fit;
+
+/* ---------- Reiter und Kopfzeile ---------- */
+$$(".tab").forEach(b=>b.onclick=()=>{$$(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$$(".pane").forEach(p=>p.hidden=p.id!=="p-"+b.dataset.t);if(isGM)ls.set("tisch-tab",b.dataset.t);if(b.dataset.t==="karte")fillMapForm()});
+$("#sideBtn").onclick=()=>{const m=$("#main");m.classList.toggle("noside");$("#sideBtn").setAttribute("aria-pressed",!m.classList.contains("noside"));setTimeout(fit,50)};
+const meSel=$("#me");[["","– Held wählen –"]].concat(HEROES.filter(h=>h.id!=="luna").map(h=>[h.id,h.n])).forEach(([v,l])=>{const o=el("option",null,l);o.value=v;meSel.appendChild(o)});
+let welcome=null;
+meSel.value=me;meSel.onchange=()=>{if(welcome){welcome.remove();welcome=null}me=meSel.value;ls.set("tisch-me",me);sendHost({type:"me",me});render()};
+setTimeout(()=>{$("#hint").hidden=true},12000);
+
+/* ---------- Start ---------- */
+(async()=>{
+  if(isGM){
+    const ok=await store.open();
+    if(!ok)banner("Dieser Browser erlaubt keinen Speicher (privates Fenster?). Szenen gehen beim Schließen verloren.",true,12000);
+    imgCache=(await store.get("imgs"))||{};
+    scenes=(await store.get("scenes"))||{};aktiv=(await store.get("aktiv"))||null;log=(await store.get("log"))||[];
+    cur=ls.get("tisch-cur",null);if(!cur||!scenes[cur])cur=aktiv&&scenes[aktiv]?aktiv:(Object.keys(scenes)[0]||null);
+    if(!Object.keys(scenes).length)newScene("Erste Szene");
+    if(aktiv&&!scenes[aktiv])aktiv=cur;
+    const t=$('.tab[data-t="'+ls.get("tisch-tab","szenen")+'"]');if(t)t.click();
+    render();fillMapForm();imgStatus();startHost();
+    if(!Object.keys(imgCache).length)banner("Noch keine Heldenbilder: Reiter „Szenen“ → „Laden“ → Datei Heldenbilder.json auswählen. Das musst du nur einmal machen.",false,20000);
+  }else{
+    $("#meBox").hidden=false;roster=[];render();startPlayer();
+    if(!me)welcome=banner("Willkommen! Wähle oben rechts bei „Ich spiele“ deinen Helden.",false,30000);
+  }
+})();
+})();
+</script>
+</body>
+</html>
