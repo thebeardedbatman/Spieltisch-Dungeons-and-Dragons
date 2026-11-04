@@ -157,7 +157,16 @@ ul.help{margin:0;padding-left:1.2em;display:grid;gap:6px}
 .atmo{position:absolute;inset:0;pointer-events:none;z-index:0}
 #world{z-index:1}
 header.bar .sub{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-body[data-adv="rasur"],body[data-adv="drache"]{color-scheme:dark}
+body[data-adv="rasur"],body[data-adv="drache"],body[data-adv="nimmerfels"]{color-scheme:dark}
+body[data-adv="nimmerfels"]{
+  --bg:#0d1020;--surface:#151a30;--surface-2:#1f2642;--ink:#E8ECF7;--muted:#A3ACC8;--line:#2e3760;
+  --accent:#D9A84E;--accent-ink:#1a1206;--moss:#4a7ac8;--danger:#e0705e;--good:#7FD4FF;--table:#0a1024;
+  --glow:120,200,255;--fogc:#060918;--pingc:#7FD4FF;--turnc:#7FD4FF}
+body[data-adv="nimmerfels"] #stage{background:radial-gradient(ellipse at 50% 0%,rgba(120,160,255,.18) 0,transparent 50%),radial-gradient(ellipse at 50% 120%,rgba(230,236,255,.14) 0,transparent 60%),var(--table)}
+body[data-adv="nimmerfels"] .atmo{background:radial-gradient(ellipse 45% 18% at 20% 85%,rgba(230,236,255,.12),transparent 70%),radial-gradient(ellipse 40% 15% at 75% 90%,rgba(230,236,255,.10),transparent 70%),radial-gradient(ellipse 35% 14% at 50% 75%,rgba(230,236,255,.08),transparent 70%);animation:wolken 40s ease-in-out infinite alternate}
+body[data-adv="nimmerfels"] .atmo::after{content:"";position:absolute;inset:0;background:rgb(190,220,255);opacity:0;animation:blitz 17s steps(1) infinite}
+@keyframes wolken{0%{transform:translateX(-5%)}100%{transform:translateX(5%)}}
+@keyframes blitz{0%,96%,100%{opacity:0}97%{opacity:.09}98%{opacity:0}99%{opacity:.06}}
 body[data-adv="rasur"]{
   --bg:#0c0f17;--surface:#141a26;--surface-2:#1e2636;--ink:#E6E8EF;--muted:#9AA3B8;--line:#2c3550;
   --accent:#E8954A;--accent-ink:#1a0f05;--moss:#7fbf4a;--danger:#e0705e;--good:#9BE05A;--table:#06080e;
@@ -178,7 +187,9 @@ body[data-adv="rasur"] .atmo{background:radial-gradient(ellipse 60% 30% at 20% 8
 body[data-adv="drache"] #stage{background:radial-gradient(ellipse at 50% 115%,rgba(226,120,40,.28) 0,transparent 55%),radial-gradient(ellipse at 80% 0%,rgba(140,255,90,.08) 0,transparent 40%),var(--table)}
 body[data-adv="drache"] .atmo{background-image:radial-gradient(2px 2px at 10% 90%,rgba(255,170,80,.9),transparent),radial-gradient(2px 2px at 30% 80%,rgba(255,140,60,.8),transparent),radial-gradient(1.5px 1.5px at 55% 95%,rgba(255,190,90,.9),transparent),radial-gradient(2px 2px at 75% 85%,rgba(255,150,70,.8),transparent),radial-gradient(1.5px 1.5px at 90% 92%,rgba(255,170,80,.9),transparent);background-size:100% 100%;animation:glut 9s linear infinite}
 @keyframes glut{0%{transform:translateY(0);opacity:.9}100%{transform:translateY(-60%);opacity:0}}
-@media (prefers-reduced-motion: reduce){.atmo{animation:none!important}}
+@media (prefers-reduced-motion: reduce){.atmo,.atmo::after{animation:none!important}}
+body.nofx .atmo{display:none}
+body.nofx .tok.turn::before,body.nofx .ping{animation:none}
 body[data-adv] .banner.info{background:#26331f;color:#E8EEDF;border-bottom:1px solid var(--line)}
 body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
 @media (max-width:1350px){header.bar .sub{display:none}}
@@ -283,6 +294,11 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
           <div class="row" id="pre-drache"></div>
         </div>
         <div class="sec">
+          <h3>Kurs auf Nimmerfels</h3>
+          <div class="row" id="pre-nimmerfels"></div>
+          <p class="note">TP für 6 Spieler. Bei weniger Spielern stehen die Werte im Spielleiter-Schirm, Reiter Monster.</p>
+        </div>
+        <div class="sec">
           <h3>Eigene Figur</h3>
           <div class="row">
             <input type="text" id="cn" placeholder="Name, z. B. Wolf" style="flex:1 1 140px">
@@ -383,7 +399,7 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
         <div class="sec">
           <h3>Aussehen</h3>
           <p class="note">Das Thema gilt für dich und alle Spieler. Wechsle es passend zum Abenteuer des Abends.</p>
-          <select id="themeSel"><option value="standard">Standard</option><option value="rasur">Die letzte Rasur</option><option value="drache">Der Bart des Drachen</option></select>
+          <select id="themeSel"><option value="standard">Standard</option><option value="rasur">Die letzte Rasur</option><option value="drache">Der Bart des Drachen</option><option value="nimmerfels">Kurs auf Nimmerfels</option></select>
         </div>
         <div class="sec">
           <h3>Spieler einladen</h3>
@@ -509,6 +525,11 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
       </div>
 
       <div class="pane" id="p-hilfe" hidden>
+        <div class="sec">
+          <h3>Darstellung</h3>
+          <label class="row"><input type="checkbox" id="fxOn" checked> Bewegte Effekte (Nebel, Funken, Blitze)</label>
+          <p class="note">Gilt nur für dich in diesem Browser. Ausschalten, wenn dich die Bewegung stört oder der Rechner langsam ist.</p>
+        </div>
         <div class="sec" id="helpPlayer">
           <h3>So spielst du mit</h3>
           <ul class="help">
@@ -569,6 +590,7 @@ const HEROES=[
  {id:"elarion",n:"Elarion",img:"elarion",c:"#4f8f3c",s:1},
  {id:"baggi",n:"Baggi",img:"baggi",c:"#7d50a0",s:1},
  {id:"dragooner",n:"Dragooner",img:"dragooner",c:"#4682e6",s:1},
+ {id:"grumbatz",n:"Grumbatz",img:"grumbatz",c:"#4e7834",s:1},
  {id:"luna",n:"Luna",img:"luna",c:"#96826e",s:2}
 ];
 const HMAP=Object.fromEntries(HEROES.map(h=>[h.id,h]));
@@ -581,7 +603,11 @@ const PRE={
   {n:"Söldner",c:"#7a5a2e",hp:11},{n:"Ilse",c:"#8a4a1e",hp:32,one:1},{n:"Verdorrter",c:"#3a3020",hp:8,s:0.7},
   {n:"Dornenbestie",c:"#2f3a1e",hp:34,s:2},{n:"Rauke",c:"#6a2a1e",hp:45,one:1},{n:"Baron",img:"baron",c:"#3a5a2a",hp:60,one:1},
   {n:"Sylvaranth",img:"sylvaranth",c:"#2f6b2a",s:4,one:1,npc:1},{n:"Weißer Hirsch",c:"#e8e4d8",s:2,npc:1,one:1},
-  {n:"Marthe",c:"#3c6e47",npc:1,one:1},{n:"Bodo",c:"#3c6e47",npc:1,one:1}]
+  {n:"Marthe",c:"#3c6e47",npc:1,one:1},{n:"Bodo",c:"#3c6e47",npc:1,one:1}],
+ nimmerfels:[
+  {n:"Kettenschläger",c:"#5a4a3a",hp:16},{n:"Frau Silbe",c:"#8a8f99",hp:30,one:1},{n:"Tentakel",c:"#6a5a7a",hp:24,s:2},
+  {n:"Meuterer",c:"#7a3a2a",hp:22},{n:"Ebbo",c:"#b08a3a",hp:65,one:1},{n:"Sturmgeist",c:"#4a7ac8",hp:90,s:2,one:1},
+  {n:"Valka",c:"#3c6e47",npc:1,one:1},{n:"Hauke",c:"#3c6e47",npc:1,one:1},{n:"Nell",c:"#3c6e47",npc:1,one:1},{n:"Pfeifer",c:"#7a8a5a",npc:1,one:1}]
 };
 const CELL0=70;
 
@@ -612,7 +638,7 @@ const store={db:null,
 };
 let persistT=null;
 function persist(){if(!isGM)return;clearTimeout(persistT);persistT=setTimeout(()=>{store.set("scenes",scenes);store.set("aktiv",aktiv);store.set("log",log);store.set("theme",theme)},300)}
-const THEMES={standard:{t:"Spieltisch",s:""},rasur:{t:"Die letzte Rasur",s:"Seelennacht in Krähenbrück"},drache:{t:"Der Bart des Drachen",s:"Teil 2 · Der sterbende Wald"}};
+const THEMES={standard:{t:"Spieltisch",s:""},rasur:{t:"Die letzte Rasur",s:"Seelennacht in Krähenbrück"},drache:{t:"Der Bart des Drachen",s:"Teil 2 · Der sterbende Wald"},nimmerfels:{t:"Kurs auf Nimmerfels",s:"Über den Wolken"}};
 let theme="standard";
 function applyTheme(v){theme=THEMES[v]?v:"standard";const th=THEMES[theme];
   if(theme==="standard")delete document.body.dataset.adv;else document.body.dataset.adv=theme;
@@ -990,7 +1016,7 @@ function addTok(p){
   if(p.hp){sc.toks[id].hp=p.hp;sc.toks[id].hpMax=p.hp}
   sel=id;save(cur);render();
 }
-["rasur","drache"].forEach(k=>{const box=$("#pre-"+k);PRE[k].forEach(p=>{const b=el("button","btn sm",p.n);b.title=p.npc?"Figur der Geschichte":"Gegner";b.onclick=()=>addTok(p);box.appendChild(b)})});
+["rasur","drache","nimmerfels"].forEach(k=>{const box=$("#pre-"+k);PRE[k].forEach(p=>{const b=el("button","btn sm",p.n);b.title=p.npc?"Figur der Geschichte":"Gegner";b.onclick=()=>addTok(p);box.appendChild(b)})});
 $("#cadd").onclick=()=>{const n=$("#cn").value.trim();if(!n){$("#cn").focus();return}addTok({n,c:$("#cc").value,s:+$("#cs").value,hp:+$("#chp").value||0,one:0});$("#cn").value=""};
 $("#clearEnemies").onclick=()=>{const sc=scenes[cur];if(!sc)return;Object.keys(sc.toks||{}).forEach(id=>{if(!sc.toks[id].h)delete sc.toks[id]});sel=null;save(cur);render()};
 
@@ -1266,6 +1292,10 @@ $("#fPush").onclick=async()=>{const ids=tracks.filter(t=>t.a).map(t=>t.a);const 
   $("#fMsg").textContent="Sende "+ids.length+" Dateien an "+ps.length+" Spieler … Das kann ein paar Minuten dauern, ihr könnt dabei schon spielen.";
   for(const a of ids)for(const p of ps)await pushAudio(p,a);
   $("#fMsg").textContent="Alle Dateien sind unterwegs zu den Spielern."};
+
+/* ---------- Effekte an/aus ---------- */
+{const fx=ls.get("tisch-fx",true);$("#fxOn").checked=fx;document.body.classList.toggle("nofx",!fx);
+ $("#fxOn").onchange=()=>{const v=$("#fxOn").checked;ls.set("tisch-fx",v);document.body.classList.toggle("nofx",!v)}}
 
 /* ---------- Start ---------- */
 (async()=>{
