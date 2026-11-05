@@ -135,6 +135,7 @@ input[type=color]{width:40px;height:30px;padding:0;border:1px solid var(--line);
 .scenes{display:grid;gap:6px}
 .scene{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--r);padding:6px 8px;background:var(--bg)}
 .scene.cur{border-color:var(--accent)}
+.advh{margin:6px 0 0;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .scene .t{flex:1 1 120px;font-weight:700;min-width:0;overflow-wrap:anywhere}
 .badge{font-size:.7rem;font-weight:700;background:var(--good);color:var(--surface);padding:1px 7px;border-radius:999px}
 .banner{background:var(--danger);color:#fff;padding:6px 16px;font-size:.9rem}
@@ -391,12 +392,14 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
         <div class="sec">
           <h3>Szenen</h3>
           <p class="note">Eine Szene ist eine Karte mit ihren Figuren und ihrem Nebel. Du kannst mehrere vorbereiten. Die Spieler sehen immer die Szene mit „Spieler sehen das“.</p>
+          <label class="row"><span class="label">Abenteuer</span><select id="advFilter"><option value="*">Alle Abenteuer</option><option value="rasur">Die letzte Rasur</option><option value="drache">Der Bart des Drachen</option><option value="nimmerfels">Kurs auf Nimmerfels</option><option value="">Ohne Abenteuer</option></select></label>
           <div class="scenes" id="sceneList"></div>
           <div class="row"><input type="text" id="newName" placeholder="Name, z. B. Taverne" style="flex:1 1 140px"><button class="btn pri" id="newScene">Neue Szene</button></div>
         </div>
         <div class="sec">
           <h3>Diese Szene</h3>
           <div class="row"><input type="text" id="rename" style="flex:1 1 140px"><button class="btn" id="renameBtn">Umbenennen</button></div>
+          <label class="row"><span class="label">Gehört zu</span><select id="sceneAdv"><option value="">Ohne Abenteuer</option><option value="rasur">Die letzte Rasur</option><option value="drache">Der Bart des Drachen</option><option value="nimmerfels">Kurs auf Nimmerfels</option></select></label>
           <div class="row"><button class="btn pri" id="showAll">Spielern zeigen</button><button class="btn dng" id="delScene">Szene löschen</button></div>
         </div>
         <div class="sec">
@@ -599,19 +602,22 @@ const HEROES=[
 const HMAP=Object.fromEntries(HEROES.map(h=>[h.id,h]));
 const PRE={
  rasur:[
-  {n:"Glatter",c:"#7d8590",hp:22},{n:"Rasiermesser",c:"#b9c0c9",hp:10,s:0.7},{n:"Haarknäuel",c:"#4a3b2c",hp:33},
-  {n:"Ambrosius",img:"ambrosius",c:"#2a2a2a",hp:85,one:1},{n:"Seelenzopf",c:"#a9864c",hp:35,s:2,one:1},
-  {n:"Hedda",c:"#3c6e47",npc:1,one:1},{n:"Lene",c:"#3c6e47",npc:1,s:0.7,one:1},{n:"Ruprecht",c:"#3c6e47",npc:1,s:0.8,one:1}],
+  {n:"Glatter",img:"glatter",c:"#7d8590",hp:22},{n:"Rasiermesser",img:"rasiermesser",c:"#b9c0c9",hp:10,s:0.7},{n:"Haarknäuel",img:"haarknaeuel",c:"#4a3b2c",hp:33},
+  {n:"Ambrosius",img:"ambrosius",c:"#2a2a2a",hp:85,one:1},{n:"Seelenzopf",img:"seelenzopf",c:"#a9864c",hp:35,s:2,one:1},
+  {n:"Hedda",img:"hedda",c:"#3c6e47",npc:1,one:1},{n:"Lene",img:"lene",c:"#3c6e47",npc:1,s:0.7,one:1},{n:"Ruprecht",img:"ruprecht",c:"#3c6e47",npc:1,s:0.8,one:1},
+  {n:"Bürgermeister",img:"buergermeister",c:"#3c6e47",npc:1,one:1}],
  drache:[
-  {n:"Söldner",c:"#7a5a2e",hp:11},{n:"Ilse",c:"#8a4a1e",hp:32,one:1},{n:"Verdorrter",c:"#3a3020",hp:8,s:0.7},
-  {n:"Dornenbestie",c:"#2f3a1e",hp:34,s:2},{n:"Rauke",c:"#6a2a1e",hp:45,one:1},{n:"Baron",img:"baron",c:"#3a5a2a",hp:60,one:1},
-  {n:"Sylvaranth",img:"sylvaranth",c:"#2f6b2a",s:4,one:1,npc:1},{n:"Weißer Hirsch",c:"#e8e4d8",s:2,npc:1,one:1},
-  {n:"Marthe",c:"#3c6e47",npc:1,one:1},{n:"Bodo",c:"#3c6e47",npc:1,one:1}],
+  {n:"Söldner",img:"soeldner",c:"#7a5a2e",hp:11},{n:"Ilse",img:"ilse",c:"#8a4a1e",hp:32,one:1},{n:"Verdorrter",img:"verdorrter",c:"#3a3020",hp:8,s:0.7},
+  {n:"Dornenbestie",img:"dornenbestie",c:"#2f3a1e",hp:34,s:2},{n:"Rauke",img:"rauke",c:"#6a2a1e",hp:45,one:1},{n:"Baron",img:"baron",c:"#3a5a2a",hp:60,one:1},
+  {n:"Sylvaranth",img:"sylvaranth",c:"#2f6b2a",s:4,one:1,npc:1},{n:"Weißer Hirsch",img:"hirsch",c:"#e8e4d8",s:2,npc:1,one:1},
+  {n:"Marthe",img:"marthe",c:"#3c6e47",npc:1,one:1},{n:"Bodo",img:"bodo",c:"#3c6e47",npc:1,one:1}],
  nimmerfels:[
-  {n:"Kettenschläger",c:"#5a4a3a",hp:16},{n:"Frau Silbe",c:"#8a8f99",hp:30,one:1},{n:"Tentakel",c:"#6a5a7a",hp:24,s:2},
-  {n:"Meuterer",c:"#7a3a2a",hp:22},{n:"Ebbo",c:"#b08a3a",hp:65,one:1},{n:"Sturmgeist",c:"#4a7ac8",hp:90,s:2,one:1},
-  {n:"Valka",c:"#3c6e47",npc:1,one:1},{n:"Hauke",c:"#3c6e47",npc:1,one:1},{n:"Nell",c:"#3c6e47",npc:1,one:1},{n:"Pfeifer",c:"#7a8a5a",npc:1,one:1}]
+  {n:"Kettenschläger",img:"kettenschlaeger",c:"#5a4a3a",hp:16},{n:"Frau Silbe",img:"silbe",c:"#8a8f99",hp:30,one:1},{n:"Tentakel",img:"tentakel",c:"#6a5a7a",hp:24,s:2},
+  {n:"Meuterer",img:"meuterer",c:"#7a3a2a",hp:22},{n:"Ebbo",img:"ebbo",c:"#b08a3a",hp:65,one:1},{n:"Sturmgeist",img:"sturmgeist",c:"#4a7ac8",hp:90,s:2,one:1},
+  {n:"Valka",img:"valka",c:"#3c6e47",npc:1,one:1},{n:"Hauke",img:"hauke",c:"#3c6e47",npc:1,one:1},{n:"Nell",img:"nell",c:"#3c6e47",npc:1,one:1},{n:"Pfeifer",img:"pfeifer",c:"#7a8a5a",npc:1,one:1}]
 };
+const PREIMG={};Object.values(PRE).forEach(a=>a.forEach(p=>{if(p.img)PREIMG[p.n]=p.img}));
+const ADV={rasur:"Die letzte Rasur",drache:"Der Bart des Drachen",nimmerfels:"Kurs auf Nimmerfels"};
 const CELL0=70;
 
 /* ---------- Zustand ---------- */
@@ -811,7 +817,7 @@ async function uploadMap(file){
 }
 function addImgs(o){let n=0;if(!o||typeof o!=="object")return 0;for(const [k,v] of Object.entries(o)){if(/^[a-z]{2,20}$/.test(k)&&typeof v==="string"&&v.startsWith("data:image/")){imgCache[k]=v;n++}}
   store.set("imgs",imgCache);sendAll({type:"imgs",imgs:imgCache});imgStatus();render();return n}
-function imgStatus(){const e=$("#imgStatus");if(!e)return;const n=Object.keys(imgCache).length;e.textContent=n?"Heldenbilder: "+n+" geladen.":"Heldenbilder fehlen noch. Lade einmal die Datei Heldenbilder.json mit „Laden“."}
+function imgStatus(){const e=$("#imgStatus");if(!e)return;const n=Object.keys(imgCache).length;e.textContent=n?"Bilder: "+n+" geladen.":"Heldenbilder fehlen noch. Lade einmal die Datei Heldenbilder.json mit „Laden“."}
 function dropMapIfUnused(id){if(!Object.values(scenes).some(s=>s.map===id)){store.del("map:"+id);delete mapCache[id]}}
 async function ensureMap(id){if(mapCache[id]||!isGM)return;const d=await store.get("map:"+id);if(d){mapCache[id]=d;render()}}
 
@@ -836,6 +842,7 @@ async function importAll(file){
     for(const c of conns.values())c.maps.clear();
     if(j.music&&Array.isArray(j.music.tracks)){tracks=j.music.tracks.filter(t=>t&&typeof t.u==="string").map(t=>({n:String(t.n||"Titel"),u:t.u}));store.set("music",{tracks});renderTracks()}
     if(typeof j.theme==="string"){applyTheme(j.theme);await store.set("theme",theme)}
+    migrateAdv();
     await store.set("scenes",scenes);await store.set("aktiv",aktiv);
     if(typeof j.pw==="string"){ls.set("tisch-pw",j.pw);$("#gmPw").value=j.pw}
     if(typeof j.code==="string"&&/^[a-z0-9]{6,24}$/.test(j.code)&&j.code!==tableCode()){
@@ -927,7 +934,7 @@ function drawToks(sc,g){
     d.style.width=px+"px";d.style.height=px+"px";
     d.style.left=(g.ox+x*g.cell+(slot*g.cell-px)/2)+"px";d.style.top=(g.oy+y*g.cell+(slot*g.cell-px)/2)+"px";
     const f=el("div","face");
-    const key=t.h&&HMAP[t.h]?HMAP[t.h].img:imgKey(t.img);const src=key&&imgCache[key];
+    const key=t.h&&HMAP[t.h]?HMAP[t.h].img:(imgKey(t.img)&&imgCache[imgKey(t.img)]?imgKey(t.img):PREIMG[String(t.n||"").replace(/\s+\d+$/,"")]);const src=key&&imgCache[key];
     const col=t.h&&HMAP[t.h]?HMAP[t.h].c:t.c;
     if(src){const im=el("img");im.src=src;im.alt="";f.appendChild(im)}
     else{f.style.background=/^#[0-9a-f]{6}$/i.test(col||"")?col:"#7a2e2a";if(t.h)f.style.border="3px solid rgba(255,255,255,.7)";f.style.fontSize=Math.max(12,px*.32)+"px";f.textContent=initials(t.n||"?");if(t.npc)f.style.borderColor="#3c6e47"}
@@ -937,6 +944,10 @@ function drawToks(sc,g){
     box.appendChild(d);
   }
 }
+async function tokenImage(file){
+  const url=URL.createObjectURL(file);try{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=url});
+  const n=Math.min(im.naturalWidth,im.naturalHeight);const cv=document.createElement("canvas");cv.width=cv.height=200;const c=cv.getContext("2d");
+  c.drawImage(im,(im.naturalWidth-n)/2,(im.naturalHeight-n)/2,n,n,0,0,200,200);let d=cv.toDataURL("image/webp",.82);if(!d.startsWith("data:image/webp"))d=cv.toDataURL("image/jpeg",.85);return d}finally{URL.revokeObjectURL(url)}}
 function imgKey(v){if(typeof v!=="string")return null;const k=v.replace(/^t\//,"").replace(/\.png$/,"");return /^[a-z]{2,20}$/.test(k)?k:null}
 function initials(n){const m=String(n).match(/^(\S+?)(?:\s+(\d+))?$/);if(m&&m[2])return m[1].slice(0,2)+m[2];return String(n).split(/\s+/).map(w=>w[0]).join("").slice(0,3)}
 
@@ -958,12 +969,18 @@ function renderSide(){
     ent.forEach(([id,t])=>{const b=el("button",sel===id?"sel":"");b.appendChild(el("span",null,t.n+(t.hid?" (versteckt)":"")));if(t.hpMax)b.appendChild(el("b",null,t.hp+"/"+t.hpMax));b.onclick=()=>{sel=id;render()};tl.appendChild(b)})}
   renderSel();
   const sl=$("#sceneList");sl.textContent="";
-  Object.entries(scenes).sort((a,b)=>(a[1].made||0)-(b[1].made||0)).forEach(([sid,s])=>{
-    const r=el("div","scene"+(sid===cur?" cur":""));r.appendChild(el("span","t",s.name));
-    if(sid===aktiv)r.appendChild(el("span","badge","Spieler sehen das"));
-    if(sid!==cur){const b=el("button","btn sm","Öffnen");b.onclick=()=>{cur=sid;ls.set("tisch-cur",cur);sel=null;fitted=null;render();fillMapForm()};r.appendChild(b)}
-    sl.appendChild(r)});
-  if(!Object.keys(scenes).length)sl.appendChild(el("p","note","Noch keine Szene."));
+  const flt=advFilter();$("#advFilter").value=flt;
+  const all=Object.entries(scenes).sort((a,b)=>(a[1].made||0)-(b[1].made||0));
+  const groups=flt==="*"?["rasur","drache","nimmerfels",""]:[flt];let shown=0;
+  groups.forEach(g=>{const list=all.filter(([,s])=>(ADV[s.adv]?s.adv:"")===g);if(!list.length)return;
+    if(flt==="*")sl.appendChild(el("p","advh",g?ADV[g]:"Ohne Abenteuer"));
+    list.forEach(([sid,s])=>{shown++;
+      const r=el("div","scene"+(sid===cur?" cur":""));r.appendChild(el("span","t",s.name));
+      if(sid===aktiv)r.appendChild(el("span","badge","Spieler sehen das"));
+      if(sid!==cur){const b=el("button","btn sm","Öffnen");b.onclick=()=>{cur=sid;ls.set("tisch-cur",cur);sel=null;fitted=null;render();fillMapForm()};r.appendChild(b)}
+      sl.appendChild(r)})});
+  if(!shown)sl.appendChild(el("p","note",Object.keys(scenes).length?"Für dieses Abenteuer gibt es noch keine Szene. Leg unten eine an.":"Noch keine Szene."));
+  $("#sceneAdv").value=sc&&ADV[sc.adv]?sc.adv:"";
   $("#rename").value=sc?sc.name:"";
   $("#showAll").disabled=!sc||aktiv===cur;$("#showAll").textContent=aktiv===cur?"Spieler sehen diese Szene":"Spielern zeigen";
   if(aktiv&&aktiv!==cur&&scenes[aktiv])$("#scn").textContent=(sc?sc.name:"–")+"  (Spieler sehen: "+scenes[aktiv].name+")";
@@ -989,7 +1006,11 @@ function renderSel(){
   size.onchange=()=>{t.s=+size.value;save(cur);render()};size.setAttribute("aria-label","Größe");
   const rm=el("button","btn sm dng","Entfernen");rm.onclick=()=>{delete sc.toks[sel];if(sc.turn===sel)sc.turn=null;sel=null;save(cur);render()};
   r2.append(hid,turn,size,rm);w.appendChild(r2);
-  if(!t.h){const r3=el("div","row");const dup=el("button","btn sm","Noch einen");dup.onclick=()=>{addTok({n:t.n.replace(/\s+\d+$/,""),c:t.c,img:t.img,hp:t.hpMax,s:t.s,npc:t.npc})};r3.appendChild(dup);w.appendChild(r3)}
+  if(!t.h){const r3=el("div","row");const dup=el("button","btn sm","Noch einen");dup.onclick=()=>{addTok({n:t.n.replace(/\s+\d+$/,""),c:t.c,img:t.img,hp:t.hpMax,s:t.s,npc:t.npc})};
+    const lab=el("label","btn sm","Eigenes Bild");lab.style.cursor="pointer";const fi=el("input");fi.type="file";fi.accept="image/*";fi.hidden=true;lab.appendChild(fi);
+    fi.onchange=async()=>{const file=fi.files&&fi.files[0];if(!file)return;try{const d=await tokenImage(file);const base=t.n.replace(/\s+\d+$/,"");let k="eig";for(let i=0;i<10;i++)k+="abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random()*26)];
+      addImgs({[k]:d});Object.values(sc.toks).forEach(x=>{if(!x.h&&String(x.n).replace(/\s+\d+$/,"")===base)x.img=k});save(cur);render();banner("Bild gespeichert. Es gilt für alle „"+base+"“ in dieser Szene.")}catch(e){banner("Das Bild ließ sich nicht laden.",true)}};
+    r3.append(dup,lab);w.appendChild(r3)}
   w.appendChild(el("p","note","Figur auf der Karte ziehen, um sie zu bewegen."));
   box.appendChild(w);
 }
@@ -1063,12 +1084,16 @@ function paintAt(w){
 }
 
 /* ---------- Szenen ---------- */
+function migrateAdv(){let n=0;Object.values(scenes).forEach(sc=>{if(sc&&sc.adv===undefined){sc.adv=ADV[theme]?theme:"";n++}});if(n)persist()}
+function advFilter(){const v=ls.get("tisch-adv","*");return v==="*"||v===""||ADV[v]?v:"*"}
 function newScene(name){
-  const sid="s"+uid();
-  scenes[sid]={name:name||"Neue Szene",map:null,mw:0,mh:0,cols:24,rows:16,ox:0,oy:0,grid:true,fogOn:false,fog:"",toks:{},turn:null,made:Date.now()};
+  const sid="s"+uid();const f=advFilter();
+  scenes[sid]={adv:ADV[f]?f:(ADV[theme]?theme:""),name:name||"Neue Szene",map:null,mw:0,mh:0,cols:24,rows:16,ox:0,oy:0,grid:true,fogOn:false,fog:"",toks:{},turn:null,made:Date.now()};
   cur=sid;ls.set("tisch-cur",cur);save(sid);if(!aktiv)setAktiv(sid);fitted=null;render();fillMapForm();
 }
 $("#newScene").onclick=()=>{newScene($("#newName").value.trim()||"Neue Szene");$("#newName").value=""};
+$("#advFilter").onchange=()=>{ls.set("tisch-adv",$("#advFilter").value);render()};
+$("#sceneAdv").onchange=()=>{const sc=scenes[cur];if(!sc)return;sc.adv=$("#sceneAdv").value;save(cur);render()};
 $("#renameBtn").onclick=()=>{const sc=scenes[cur];const v=$("#rename").value.trim();if(sc&&v){sc.name=v;save(cur);render()}};
 $("#showAll").onclick=()=>{if(cur)setAktiv(cur)};
 let delArm=0;
@@ -1315,7 +1340,7 @@ $("#fPush").onclick=async()=>{const ids=tracks.filter(t=>t.a).map(t=>t.a);const 
     applyTheme((await store.get("theme"))||"standard");
     {const mu=await store.get("music");tracks=(mu&&Array.isArray(mu.tracks))?mu.tracks:[];renderTracks()}
     $("#themeSel").onchange=()=>{applyTheme($("#themeSel").value);persist();broadcastSoon()};
-    scenes=(await store.get("scenes"))||{};aktiv=(await store.get("aktiv"))||null;log=(await store.get("log"))||[];
+    scenes=(await store.get("scenes"))||{};aktiv=(await store.get("aktiv"))||null;log=(await store.get("log"))||[];migrateAdv();
     cur=ls.get("tisch-cur",null);if(!cur||!scenes[cur])cur=aktiv&&scenes[aktiv]?aktiv:(Object.keys(scenes)[0]||null);
     if(!Object.keys(scenes).length)newScene("Erste Szene");
     if(aktiv&&!scenes[aktiv])aktiv=cur;
