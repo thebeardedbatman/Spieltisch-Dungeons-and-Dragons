@@ -404,7 +404,7 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
         </div>
         <div class="sec">
           <h3>Aussehen</h3>
-          <p class="note">Das Thema gilt für dich und alle Spieler. Wechsle es passend zum Abenteuer des Abends.</p>
+          <p class="note">Das Thema gilt für dich und alle Spieler. Es wechselt automatisch, wenn du oben ein Abenteuer auswählst. Hier kannst du es trotzdem jederzeit von Hand ändern.</p>
           <select id="themeSel"><option value="standard">Standard</option><option value="rasur">Die letzte Rasur</option><option value="drache">Der Bart des Drachen</option><option value="nimmerfels">Kurs auf Nimmerfels</option></select>
         </div>
         <div class="sec">
@@ -1092,7 +1092,7 @@ function newScene(name){
   cur=sid;ls.set("tisch-cur",cur);save(sid);if(!aktiv)setAktiv(sid);fitted=null;render();fillMapForm();
 }
 $("#newScene").onclick=()=>{newScene($("#newName").value.trim()||"Neue Szene");$("#newName").value=""};
-$("#advFilter").onchange=()=>{ls.set("tisch-adv",$("#advFilter").value);render()};
+$("#advFilter").onchange=()=>{const v=$("#advFilter").value;ls.set("tisch-adv",v);if(ADV[v]&&v!==theme){applyTheme(v);persist();broadcastSoon()}render()};
 $("#sceneAdv").onchange=()=>{const sc=scenes[cur];if(!sc)return;sc.adv=$("#sceneAdv").value;save(cur);render()};
 $("#renameBtn").onclick=()=>{const sc=scenes[cur];const v=$("#rename").value.trim();if(sc&&v){sc.name=v;save(cur);render()}};
 $("#showAll").onclick=()=>{if(cur)setAktiv(cur)};
