@@ -1,0 +1,12 @@
+/* Schriften lokal eingebunden (keine Verbindung zu Google). Lizenz: SIL Open Font License 1.1 */
+@font-face{font-family:'IM Fell English SC';font-style:normal;font-display:swap;font-weight:400;src:url(im-fell-english-sc-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Alegreya';font-style:normal;font-display:swap;font-weight:400;src:url(alegreya-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Alegreya';font-style:italic;font-display:swap;font-weight:400;src:url(alegreya-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'Alegreya';font-style:normal;font-display:swap;font-weight:600;src:url(alegreya-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Alegreya';font-style:normal;font-display:swap;font-weight:700;src:url(alegreya-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Alegreya Sans';font-style:normal;font-display:swap;font-weight:400;src:url(alegreya-sans-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Alegreya Sans';font-style:normal;font-display:swap;font-weight:500;src:url(alegreya-sans-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Alegreya Sans';font-style:normal;font-display:swap;font-weight:700;src:url(alegreya-sans-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Cinzel';font-style:normal;font-display:swap;font-weight:500;src:url(cinzel-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Cinzel';font-style:normal;font-display:swap;font-weight:700;src:url(cinzel-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Cinzel Decorative';font-style:normal;font-display:swap;font-weight:700;src:url(cinzel-decorative-latin-700-normal.woff2) format('woff2')}
