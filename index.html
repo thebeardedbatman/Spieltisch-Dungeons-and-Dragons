@@ -575,6 +575,7 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
   </div>
 </div>
 
+<script src="tisch-config.js" onerror="void 0"></script>
 <script src="peerjs.min.js"></script>
 <script>
 (function(){
@@ -684,11 +685,11 @@ function setConn(text,cls){const c=$("#conn");c.textContent=text;c.className="ch
 /* ---------- Netz: Spielleiter ist Gastgeber, Spieler verbinden sich ---------- */
 let peer=null;const conns=new Map();   // peerId -> {conn,me,maps:Set}
 let hostConn=null,hostOk=false,retryT=null;
-/* Eigener Verbindungsserver: Läuft der Spieltisch auf dem eigenen Server, verbindet er sich über dessen /peerjs.
-   Auf GitHub Pages wird weiter der kostenlose PeerJS-Server genutzt. */
-function peerOpts(){const h=location.hostname;
-  if(!h||location.protocol==="file:"||/(^|\.)github\.io$/.test(h))return {debug:0};
-  const sec=location.protocol==="https:";return {debug:0,host:h,port:location.port?+location.port:(sec?443:80),secure:sec,path:"/"}}
+/* Verbindungsserver: Standard ist der kostenlose PeerJS-Server.
+   Wer einen eigenen betreibt, legt neben index.html eine tisch-config.js an, z. B.:
+   window.TISCH_PEER={host:"meine-domain.de",port:443,secure:true,path:"/"}; */
+function peerOpts(){const o={debug:0};const c=window.TISCH_PEER;
+  if(c&&typeof c==="object")["host","port","secure","path","key"].forEach(k=>{if(c[k]!==undefined)o[k]=c[k]});return o}
 function tableCode(){let c=ls.get("tisch-code","");if(!c){c=(uid()+uid()).slice(0,10);ls.set("tisch-code",c)}return c}
 function playerLink(){const u=new URL(location.href);u.search="?tisch="+tableCode();u.hash="";return u.toString()}
 function copyLink(){const l=playerLink();const done=()=>banner("Link kopiert. Schick ihn den Spielern.",false,3000);
