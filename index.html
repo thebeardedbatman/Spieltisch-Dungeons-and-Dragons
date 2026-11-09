@@ -684,6 +684,11 @@ function setConn(text,cls){const c=$("#conn");c.textContent=text;c.className="ch
 /* ---------- Netz: Spielleiter ist Gastgeber, Spieler verbinden sich ---------- */
 let peer=null;const conns=new Map();   // peerId -> {conn,me,maps:Set}
 let hostConn=null,hostOk=false,retryT=null;
+/* Eigener Verbindungsserver: Läuft der Spieltisch auf dem eigenen Server, verbindet er sich über dessen /peerjs.
+   Auf GitHub Pages wird weiter der kostenlose PeerJS-Server genutzt. */
+function peerOpts(){const h=location.hostname;
+  if(!h||location.protocol==="file:"||/(^|\.)github\.io$/.test(h))return {debug:0};
+  const sec=location.protocol==="https:";return {debug:0,host:h,port:location.port?+location.port:(sec?443:80),secure:sec,path:"/"}}
 function tableCode(){let c=ls.get("tisch-code","");if(!c){c=(uid()+uid()).slice(0,10);ls.set("tisch-code",c)}return c}
 function playerLink(){const u=new URL(location.href);u.search="?tisch="+tableCode();u.hash="";return u.toString()}
 function copyLink(){const l=playerLink();const done=()=>banner("Link kopiert. Schick ihn den Spielern.",false,3000);
@@ -692,7 +697,7 @@ function copyLink(){const l=playerLink();const done=()=>banner("Link kopiert. Sc
 function startHost(){
   if(typeof Peer==="undefined"){setConn("Ohne Verbindung","warn");banner("Die Verbindungs-Bibliothek fehlt (peerjs.min.js). Ist die Datei mit hochgeladen?",true,15000);return}
   setConn("Öffne Tisch …");
-  peer=new Peer(PREFIX+tableCode(),{debug:0});
+  peer=new Peer(PREFIX+tableCode(),peerOpts());
   peer.on("open",()=>{setConn("Tisch offen · 0 Spieler","ok");updateRoster()});
   peer.on("connection",c=>{
     if(c.label==="audio"||(c.metadata&&c.metadata.kind==="audio")){onAudioConn(c);return}
@@ -755,7 +760,7 @@ function applyMove(m){
 function startPlayer(){
   if(typeof Peer==="undefined"){setConn("Ohne Verbindung","warn");banner("Die Verbindungs-Bibliothek fehlt.",true,15000);return}
   setConn("Verbinde …");
-  peer=new Peer({debug:0});
+  peer=new Peer(peerOpts());
   peer.on("open",connectHost);
   peer.on("disconnected",()=>{setTimeout(()=>{try{peer.reconnect()}catch(e){}},2000)});
   peer.on("error",e=>{if(e.type==="peer-unavailable"){hostOk=false;setConn("Warte auf Spielleiter …","warn");render();scheduleRetry()}
