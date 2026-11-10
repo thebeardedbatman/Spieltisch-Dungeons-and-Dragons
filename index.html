@@ -215,6 +215,7 @@ body[data-adv] .seg button[aria-pressed="true"]{background:#3d5a2e;color:#fff}
     <span class="sp"></span>
     <label class="row" id="meBox" hidden><span class="label">Ich spiele</span><select id="me"></select></label>
     <button class="btn pri" id="linkBtn" hidden>Spieler-Link kopieren</button>
+    <a class="btn" id="homeBtn" hidden target="_blank" rel="noopener"></a>
     <button class="btn" id="sideBtn" aria-pressed="true">Seitenleiste</button>
   </header>
   <div id="banners"></div>
@@ -620,6 +621,12 @@ const ADV={rasur:"Die letzte Rasur",drache:"Der Bart des Drachen",nimmerfels:"Ku
 const CELL0=70;
 
 /* ---------- Zustand ---------- */
+/* Weg zurück zur eigenen Seite: nur wenn tisch-config.js z. B. window.TISCH_HOME={url:"/",label:"Zum Portal"} setzt.
+   Öffnet in einem neuen Tab, damit die Verbindung am Tisch bestehen bleibt. */
+(function(){const c=window.TISCH_HOME,b=document.getElementById("homeBtn");
+  if(!b||!c||typeof c.url!=="string"||!/^(\/|https:\/\/)/.test(c.url))return;
+  b.href=c.url;b.textContent="\u2190 "+(typeof c.label==="string"&&c.label?c.label:"Zur Startseite");
+  b.title="Öffnet in einem neuen Tab, der Tisch bleibt verbunden";b.style.textDecoration="none";b.style.color="inherit";b.hidden=false})();
 const params=new URLSearchParams(location.search);
 const joinCode=(params.get("tisch")||"").replace(/[^a-z0-9]/gi,"").slice(0,24);
 const isGM=!joinCode;
